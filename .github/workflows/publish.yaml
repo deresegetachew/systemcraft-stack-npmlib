@@ -1,0 +1,37 @@
+name: publish
+on:
+  push:
+    branches: [ main ]
+concurrency: ${{ github.workflow }}-${{ github.ref_name }}
+cancel_in_progress: false
+
+permissions:
+  contents: write
+  id-token: write              # npm provenance (OIDC)
+  pull-requests: write
+
+jobs:
+  publish:
+    if: ${{ github.event.workflow.conclusion != 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2 
+        with:
+          version: 8
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Install dependencies
+        run: pnpm install  --frozen-lockfile
+      - name: Create Release Pull Request or Publish
+        id: changesets
+        uses: changesets/action@v2
+        with:
+          publish: 'pnpm run release'
+      

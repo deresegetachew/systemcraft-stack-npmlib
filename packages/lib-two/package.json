@@ -1,0 +1,18 @@
+{
+    "name": "@systemcraft/lib-two",
+    "version": "0.0.1",
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsup index.ts --format cjs,esm --dts --tsconfig tsconfig.json",
+        "lint": "tsc -p tsconfig.json",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+        "@systemcraft/lib-one": "workspace:^"
+    }
+}
