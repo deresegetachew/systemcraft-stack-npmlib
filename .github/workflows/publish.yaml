@@ -3,7 +3,6 @@ on:
   push:
     branches: [ main ]
 concurrency: ${{ github.workflow }}-${{ github.ref_name }}
-cancel_in_progress: false
 
 permissions:
   contents: write
@@ -14,21 +13,13 @@ jobs:
   publish:
     if: ${{ github.event.workflow.conclusion != 'success' }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2 
+      - uses: ./.github/action/setup-node-pnpm
         with:
-          version: 8
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
-      - name: Install dependencies
-        run: pnpm install  --frozen-lockfile
+          node-version: ${{ matrix.node-version }}
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v2
