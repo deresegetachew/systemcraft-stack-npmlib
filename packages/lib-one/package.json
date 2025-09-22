@@ -4,11 +4,18 @@
     "main": "dist/index.js",
     "module": "dist/index.mjs",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        }
+    },
     "files": [
         "dist"
     ],
     "scripts": {
-        "build": "tsup index.ts --format cjs,esm --dts --tsconfig tsconfig.json",
+        "build": "tsup src/index.ts --format cjs,esm --dts --tsconfig tsconfig.json",
         "lint": "tsc -p tsconfig.json",
         "test": "echo \"Error: no test specified\" && exit 1"
     }
