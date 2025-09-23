@@ -15,4 +15,4 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: ./.github/actions/build-line-test
+      - uses: ./.github/actions/build-lint-test

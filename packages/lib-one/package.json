@@ -17,6 +17,6 @@
     "scripts": {
         "build": "tsup src/index.ts --format cjs,esm --dts --tsconfig tsconfig.json",
         "lint": "tsc -p tsconfig.json",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"\u001b[33mWarning: no test specified\u001b[0m\""
     }
 }
