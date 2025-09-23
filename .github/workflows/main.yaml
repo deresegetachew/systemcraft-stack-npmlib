@@ -34,6 +34,11 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-packages
+          path: .
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
