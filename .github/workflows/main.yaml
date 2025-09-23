@@ -11,7 +11,8 @@ jobs:
       matrix:
         node-version: [22]
     steps:
-      - uses: ./.github/action/setup-node-pnpm
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ matrix.node-version }}
       - name : Lint code
