@@ -5,15 +5,12 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  NODE_VERSION: 22
-
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: ${{ env.NODE_VERSION }}
+        node-version: [22]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-pnpm
@@ -31,7 +28,7 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        node-version: ${{ env.NODE_VERSION }}
+        node-version: [22]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-pnpm
