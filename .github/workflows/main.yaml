@@ -13,12 +13,13 @@ jobs:
       matrix:
         node-version: [22]
     steps:
-      - name: list actions
-        shell: bash
-        run: |
-          grep -RIn --include='*.yml' --include='*.yaml' -E 'actions/upload-artifact@v4|dist-packages|packages/(lib-one|lib-two)/dist' "$GITHUB_WORKSPACE/.github" || true
-
+    
       - uses: actions/checkout@v4
+      - name: list actions
+            shell: bash
+            run: |
+              grep -RIn --include='*.yml' --include='*.yaml' -E 'actions/upload-artifact@v4|dist-packages|packages/(lib-one|lib-two)/dist' "$GITHUB_WORKSPACE/.github" || true
+
       - uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ matrix.node-version }}
