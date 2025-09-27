@@ -6,12 +6,16 @@ on:
     branches: [ main ]
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [22]
     steps:
+      - name: list actions
+        shell: bash
+        run: grep -RIn "upload-artifact@v4\|dist-packages\|packages/lib-one/dist\|packages/lib-two/dist" .github
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-pnpm
         with:
