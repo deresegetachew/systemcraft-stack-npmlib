@@ -1,5 +1,13 @@
 # @systemcraft/lib-two
 
+## 0.1.2
+
+### Patch Changes
+
+- 3717f8e: testing publish
+- Updated dependencies [3717f8e]
+  - @systemcraft/lib-one@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
