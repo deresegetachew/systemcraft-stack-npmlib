@@ -15,7 +15,9 @@ jobs:
     steps:
       - name: list actions
         shell: bash
-        run: grep -RIn "upload-artifact@v4\|dist-packages\|packages/lib-one/dist\|packages/lib-two/dist" .github
+        run: |
+          grep -RIn --include='*.yml' --include='*.yaml' -E 'actions/upload-artifact@v4|dist-packages|packages/(lib-one|lib-two)/dist' "$GITHUB_WORKSPACE/.github" || true
+
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node-pnpm
         with:
