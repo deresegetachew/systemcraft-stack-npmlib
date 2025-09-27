@@ -4,6 +4,7 @@ runs:
   using: composite
   steps:
     - name: list actions
+      shell: bash
       run: rg -n "upload-artifact@v4|dist-packages|packages/lib-one/dist|packages/lib-two/dist" .github
 
     - name: Build packages
