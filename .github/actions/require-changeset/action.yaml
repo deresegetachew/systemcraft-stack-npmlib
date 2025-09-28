@@ -16,24 +16,25 @@ runs:
           exit 0
         fi
 
-        echo "🔄 Fetching main branch..."
+        echo "🔄 Fetching branches..."
         git fetch origin main
+        git fetch origin ${{ github.head_ref }}
         
-        echo "🔍 Finding merge base..."
-        if ! MB=$(git merge-base origin/main HEAD 2>&1); then
-          echo "❌ ERROR: Could not find merge base with origin/main"
-          echo "Merge base output: $MB"
-          echo "Current branch: $(git branch --show-current)"
-          echo "Available branches: $(git branch -r)"
-          exit 1
-        fi
+        echo "🔍 Setting up git references for PR context..."
+        echo "Head ref: ${{ github.head_ref }}"
+        echo "Base ref: ${{ github.base_ref }}"
         
-        echo "✅ Merge base found: $MB"
+        # In PR context, compare the head branch against base branch
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        
+        echo "Comparing $BASE_SHA (base) to $HEAD_SHA (head)"
+        
         echo ""
         echo "🔍 Checking for changesets in this PR..."
-        echo "Changed files since merge base:"
+        echo "Changed files in this PR:"
         
-        if ! CHANGED_FILES=$(git diff --name-only $MB...HEAD 2>&1); then
+        if ! CHANGED_FILES=$(git diff --name-only $BASE_SHA...$HEAD_SHA 2>&1); then
           echo "❌ ERROR: Could not get changed files"
           echo "Git diff output: $CHANGED_FILES"
           exit 1
@@ -41,7 +42,7 @@ runs:
         
         echo "$CHANGED_FILES"
 
-        CHANGESET_FILES=$(git diff --name-only $MB...HEAD | grep -E '^\.changeset/.*\.md$' || true)
+        CHANGESET_FILES=$(echo "$CHANGED_FILES" | grep -E '^\.changeset/.*\.md$' || true)
         
         if [[ -z "$CHANGESET_FILES" ]]; then
           echo ""
