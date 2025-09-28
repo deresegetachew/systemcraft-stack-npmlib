@@ -43,6 +43,12 @@ jobs:
         with:
           name: dist-packages
           path: .
+      - name: Debug downloaded artifacts
+        run: |
+          echo "Contents after artifact download:"
+          find . -name "*.js" -o -name "*.mjs" -o -name "*.d.ts" | head -20
+          echo "Package directories:"
+          ls -la packages/*/dist/ 2>/dev/null || echo "No dist directories found"
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1

@@ -13,9 +13,7 @@ runs:
         name: dist-packages
         if-no-files-found: error
         retention-days: 1
-        path: |
-          packages/lib-one/dist/**
-          packages/lib-two/dist/**
+        path: packages/*/dist/
 
     - name: Lint code
       shell: bash
