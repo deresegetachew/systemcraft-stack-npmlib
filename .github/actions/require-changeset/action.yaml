@@ -6,20 +6,36 @@ runs:
     - name: Check for changeset in PR
       shell: bash
       run: |
-        echo "Event type: ${{ github.event_name }}"
-        echo "PR title: ${{ github.event.pull_request.title }}"
-        echo "Actor: ${{ github.actor }}"
+        
+        SKIP_LABEL="[skip changeset check]"
+        PR_TITLE="${{ github.event.pull_request.title }}"
+        PR_BODY="${{ github.event.pull_request.body }}"
+        ACTOR="${{ github.actor }}"
+        EVENT_TYPE="${{ github.event_name }}"
+
+        echo "Event type: $EVENT_TYPE"
+        echo "PR title: $PR_TITLE"
+        echo "Actor: $ACTOR"
 
         # Skip if not a pull request
-        if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+        if [[ "$EVENT_TYPE" != "pull_request" ]]; then
           echo "ℹ️ Not a pull request, skipping changeset check."
           exit 0
         fi
 
         # Skip guard for release PRs created by Changesets
-        if [[ "${{ github.event.pull_request.title }}" == "Version Packages"* ]] \
-           || [[ "${{ github.actor }}" == "github-actions[bot]" ]]; then
+        if [[ "$PR_TITLE" == "Version Packages"* ]] \
+           || [[ "$ACTOR" == "github-actions[bot]" ]]; then
           echo "ℹ️ Release PR detected, skipping changeset check."
+          exit 0
+        fi
+
+        # TODO: Skip guard for dependabot PRs
+
+
+        # Skip guard for PRs with skip changeset check label
+        if [[ "$PR_TITLE" == *"$SKIP_LABEL"* ]] || [[ "$PR_BODY" == *"$SKIP_LABEL"* ]]; then
+          echo "ℹ️ Skip label detected in PR title or body, skipping changeset check."
           exit 0
         fi
 
