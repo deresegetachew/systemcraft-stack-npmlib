@@ -131,7 +131,7 @@ jobs:
 
             // Build markdown
             const mk = [
-              '### 🔒 CodeQL Security Scan',
+              '### 💂‍♂️ CodeQL Security Scan 💂‍♂️',
               `**Total alerts:** ${total}`,
               '',
               '**By severity (security_severity_level):**',
