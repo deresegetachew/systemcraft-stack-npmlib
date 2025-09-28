@@ -24,6 +24,11 @@ jobs:
 
   codeql:
     uses: ./.github/workflows/codeql.yml
+    permissions:
+      # This permissions are required by codeql workflow
+      security-events: write
+      pull-requests: write
+      contents: read
     with: 
       languages: 'javascript' # comma separated values code
 

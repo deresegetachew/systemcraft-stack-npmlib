@@ -13,8 +13,10 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
     permissions:
-      security-events: write  # required for codeQL to upload SARIF (Static Analysis Results Interchange Format) results
-      pull-requests: write # required to write comment to pull requests
+      # required permissions only applies when run by itself, if run as workflow_call parent must specify the permissions
+      security-events: write
+      pull-requests: write
+
       contents: read
     steps:
       - uses: actions/checkout@v4
