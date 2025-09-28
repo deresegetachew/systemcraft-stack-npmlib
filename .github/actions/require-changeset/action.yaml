@@ -19,9 +19,30 @@ runs:
         git fetch origin main
         MB=$(git merge-base origin/main HEAD)
 
-        if ! git diff --name-only $MB...HEAD | grep -qE '^\.changeset/.*\.md$'; then
-          echo "❌ No changeset found. Add one with: pnpm changeset"
+        echo "🔍 Checking for changesets in this PR..."
+        echo "Merge base: $MB"
+        echo "Changed files:"
+        git diff --name-only $MB...HEAD
+
+        CHANGESET_FILES=$(git diff --name-only $MB...HEAD | grep -E '^\.changeset/.*\.md$' || true)
+        
+        if [[ -z "$CHANGESET_FILES" ]]; then
+          echo ""
+          echo "❌ ERROR: No changeset found for this PR!"
+          echo ""
+          echo "📝 This PR modifies code but doesn't include a changeset."
+          echo "   Changesets are required to track version bumps and generate changelogs."
+          echo ""
+          echo "🔧 To fix this:"
+          echo "   1. Run: pnpm changeset"
+          echo "   2. Follow the prompts to describe your changes"
+          echo "   3. Commit the generated .changeset/*.md file"
+          echo ""
+          echo "💡 Learn more: https://github.com/changesets/changesets"
+          echo ""
           exit 1
         fi
 
-        echo "✅ Changeset found."
+        echo ""
+        echo "✅ Changeset found:"
+        echo "$CHANGESET_FILES"
