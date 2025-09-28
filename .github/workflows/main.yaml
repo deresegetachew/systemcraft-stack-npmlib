@@ -22,13 +22,19 @@ jobs:
 
       - uses: ./.github/actions/build-lint-test
 
+  codeql:
+    uses: ./.github/workflows/codeql.yml
+    with: 
+      languages: 'javascript' # comma separated values code
+
   publish:
     needs: build
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write
+      # Grants write access to the GitHub Actions workflow's OIDC token, enabling authentication with external services.
+      id-token: write 
       pull-requests: write
     strategy:
       matrix:

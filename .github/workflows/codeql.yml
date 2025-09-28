@@ -1,0 +1,41 @@
+name: CodeQL
+on:
+  workflow_call:  # reusable called by other workflows
+    inputs:
+      languages:
+        required: false
+        type: string
+        default: 'javascript'
+  schedule:
+    - cron: '0 6 * * 1'   # weekly scan (runs standalone)
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write  # required for codeQL to upload SARIF (Static Analysis Results Interchange Format) results
+      pull-requests: write # required to write comment to pull requests
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ inputs.languages }}
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          output: results.sarif
+
+      - name: Post CodeQL summary to PR
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: codeql-report
+          message: |
+            ### 🔒 CodeQL Security Scan
+            - Workflow: [${{ github.workflow }} run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - Full results: [Code scanning alerts](${{ github.server_url }}/${{ github.repository }}/security/code-scanning)
