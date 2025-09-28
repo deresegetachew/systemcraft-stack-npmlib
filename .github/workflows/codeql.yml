@@ -1,0 +1,99 @@
+name: CodeQL
+on:
+  workflow_call:  # reusable called by other workflows
+    inputs:
+      languages:
+        required: false
+        type: string
+        default: 'javascript'
+  schedule:
+    - cron: '0 6 * * 1'   # weekly scan (runs standalone)
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      # required permissions only applies when run by itself, if run as workflow_call parent must specify the permissions
+      security-events: write
+      pull-requests: write
+
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+     
+      - name: Check Code Scanning setup
+        id: check-scan
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            let enabled = false;
+            let defaultSetup = false;
+
+            // 1) Is Code Scanning enabled at all?
+            try {
+              await github.request('GET /repos/{owner}/{repo}/code-scanning/alerts', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 1
+              });
+              enabled = true;
+            } catch (e) {
+              core.warning("⚠️ Code Scanning is not enabled. Enable it under Settings → Security & analysis.");
+              core.setOutput('enabled', 'false');
+              core.setOutput('defaultSetup', 'unknown');
+              return;
+            }
+
+            // 2) Is Default setup configured?
+            try {
+              const resp = await github.request('GET /repos/{owner}/{repo}/code-scanning/default-setup', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              if (resp.status === 200 && resp.data?.state === 'configured') {
+                defaultSetup = true;
+              }
+            } catch (e) {
+              // 404 means default setup not configured => advanced mode is allowed
+            }
+
+            if (enabled && defaultSetup) {
+              core.warning("⚠️ Code Scanning Default setup is enabled. Disable it to use this advanced workflow.");
+              core.setOutput('enabled', 'false');
+              core.setOutput('defaultSetup', 'true');
+              return;
+            }
+
+            core.notice("✅ Code Scanning (advanced mode) is enabled. Proceeding with CodeQL.");
+            core.setOutput('enabled', 'true');
+            core.setOutput('defaultSetup', 'false');
+
+      - name: Exit if Code Scanning unavailable or Default setup is on
+        if: ${{ steps.check-scan.outputs.enabled != 'true' || steps.check-scan.outputs.defaultSetup == 'true' }}
+        run: |
+          echo "Skipping CodeQL (Code Scanning disabled or Default setup is enabled)."
+          exit 0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ inputs.languages }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          output: results.sarif
+
+      - name: Post CodeQL summary to PR
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: codeql-report
+          message: |
+            ### 🔒 CodeQL Security Scan
+            - Workflow: [${{ github.workflow }} run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - Full results: [Code scanning alerts](${{ github.server_url }}/${{ github.repository }}/security/code-scanning)
