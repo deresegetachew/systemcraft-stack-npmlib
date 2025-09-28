@@ -16,13 +16,30 @@ runs:
           exit 0
         fi
 
+        echo "🔄 Fetching main branch..."
         git fetch origin main
-        MB=$(git merge-base origin/main HEAD)
-
+        
+        echo "🔍 Finding merge base..."
+        if ! MB=$(git merge-base origin/main HEAD 2>&1); then
+          echo "❌ ERROR: Could not find merge base with origin/main"
+          echo "Merge base output: $MB"
+          echo "Current branch: $(git branch --show-current)"
+          echo "Available branches: $(git branch -r)"
+          exit 1
+        fi
+        
+        echo "✅ Merge base found: $MB"
+        echo ""
         echo "🔍 Checking for changesets in this PR..."
-        echo "Merge base: $MB"
-        echo "Changed files:"
-        git diff --name-only $MB...HEAD
+        echo "Changed files since merge base:"
+        
+        if ! CHANGED_FILES=$(git diff --name-only $MB...HEAD 2>&1); then
+          echo "❌ ERROR: Could not get changed files"
+          echo "Git diff output: $CHANGED_FILES"
+          exit 1
+        fi
+        
+        echo "$CHANGED_FILES"
 
         CHANGESET_FILES=$(git diff --name-only $MB...HEAD | grep -E '^\.changeset/.*\.md$' || true)
         
