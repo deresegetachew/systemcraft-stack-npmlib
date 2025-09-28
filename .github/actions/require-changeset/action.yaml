@@ -5,13 +5,18 @@ runs:
   steps:
     - name: Check for changeset in PR
       shell: bash
+      env:
+        SKIP_LABEL: "[skip changeset check]"
+        PR_TITLE: ${{ github.event.pull_request.title || '' }}
+        PR_BODY: ${{ github.event.pull_request.body  || '' }}
+        ACTOR: ${{ github.actor }}
+        EVENT_TYPE: ${{ github.event_name }}
+        BASE_REF: ${{ github.base_ref || 'main' }}
+        HEAD_REF: ${{ github.head_ref || '' }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
       run: |
-        
-        SKIP_LABEL="[skip changeset check]"
-        PR_TITLE="${{ github.event.pull_request.title }}"
-        PR_BODY="${{ github.event.pull_request.body }}"
-        ACTOR="${{ github.actor }}"
-        EVENT_TYPE="${{ github.event_name }}"
+        set -euo pipefail
 
         echo "Event type: $EVENT_TYPE"
         echo "PR title: $PR_TITLE"
@@ -24,14 +29,12 @@ runs:
         fi
 
         # Skip guard for release PRs created by Changesets
-        if [[ "$PR_TITLE" == "Version Packages"* ]] \
-           || [[ "$ACTOR" == "github-actions[bot]" ]]; then
+        if [[ "$PR_TITLE" == "Version Packages"* ]] || [[ "$ACTOR" == "github-actions[bot]" ]]; then
           echo "ℹ️ Release PR detected, skipping changeset check."
           exit 0
         fi
 
         # TODO: Skip guard for dependabot PRs
-
 
         # Skip guard for PRs with skip changeset check label
         if [[ "$PR_TITLE" == *"$SKIP_LABEL"* ]] || [[ "$PR_BODY" == *"$SKIP_LABEL"* ]]; then
@@ -40,33 +43,29 @@ runs:
         fi
 
         echo "🔄 Fetching branches..."
-        git fetch origin main
-        git fetch origin ${{ github.head_ref }}
-        
+        git fetch origin "$BASE_REF"
+        if [[ -n "$HEAD_REF" ]]; then git fetch origin "$HEAD_REF"; fi
+
         echo "🔍 Setting up git references for PR context..."
-        echo "Head ref: ${{ github.head_ref }}"
-        echo "Base ref: ${{ github.base_ref }}"
-        
-        # In PR context, compare the head branch against base branch
-        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-        BASE_SHA="${{ github.event.pull_request.base.sha }}"
-        
+        echo "Head ref: $HEAD_REF"
+        echo "Base ref: $BASE_REF"
+
         echo "Comparing $BASE_SHA (base) to $HEAD_SHA (head)"
-        
+
         echo ""
         echo "🔍 Checking for changesets in this PR..."
         echo "Changed files in this PR:"
-        
-        if ! CHANGED_FILES=$(git diff --name-only $BASE_SHA...$HEAD_SHA 2>&1); then
+
+        if ! CHANGED_FILES=$(git diff --name-only "$BASE_SHA...$HEAD_SHA" 2>&1); then
           echo "❌ ERROR: Could not get changed files"
           echo "Git diff output: $CHANGED_FILES"
           exit 1
         fi
-        
+
         echo "$CHANGED_FILES"
 
         CHANGESET_FILES=$(echo "$CHANGED_FILES" | grep -E '^\.changeset/.*\.md$' || true)
-        
+
         if [[ -z "$CHANGESET_FILES" ]]; then
           echo ""
           echo "❌ ERROR: No changeset found for this PR!"
