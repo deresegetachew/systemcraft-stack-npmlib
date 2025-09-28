@@ -1,0 +1,66 @@
+name: Require Changeset
+description: "Fail PRs to main without a changeset (skip for release PRs)"
+runs:
+  using: composite
+  steps:
+    - name: Check for changeset in PR
+      shell: bash
+      run: |
+        echo "PR title: ${{ github.event.pull_request.title }}"
+        echo "Actor: ${{ github.actor }}"
+
+        # Skip guard for release PRs created by Changesets
+        if [[ "${{ github.event.pull_request.title }}" == "Version Packages"* ]] \
+           || [[ "${{ github.actor }}" == "github-actions[bot]" ]]; then
+          echo "ℹ️ Release PR detected, skipping changeset check."
+          exit 0
+        fi
+
+        echo "🔄 Fetching branches..."
+        git fetch origin main
+        git fetch origin ${{ github.head_ref }}
+        
+        echo "🔍 Setting up git references for PR context..."
+        echo "Head ref: ${{ github.head_ref }}"
+        echo "Base ref: ${{ github.base_ref }}"
+        
+        # In PR context, compare the head branch against base branch
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        
+        echo "Comparing $BASE_SHA (base) to $HEAD_SHA (head)"
+        
+        echo ""
+        echo "🔍 Checking for changesets in this PR..."
+        echo "Changed files in this PR:"
+        
+        if ! CHANGED_FILES=$(git diff --name-only $BASE_SHA...$HEAD_SHA 2>&1); then
+          echo "❌ ERROR: Could not get changed files"
+          echo "Git diff output: $CHANGED_FILES"
+          exit 1
+        fi
+        
+        echo "$CHANGED_FILES"
+
+        CHANGESET_FILES=$(echo "$CHANGED_FILES" | grep -E '^\.changeset/.*\.md$' || true)
+        
+        if [[ -z "$CHANGESET_FILES" ]]; then
+          echo ""
+          echo "❌ ERROR: No changeset found for this PR!"
+          echo ""
+          echo "📝 This PR modifies code but doesn't include a changeset."
+          echo "   Changesets are required to track version bumps and generate changelogs."
+          echo ""
+          echo "🔧 To fix this:"
+          echo "   1. Run: pnpm changeset"
+          echo "   2. Follow the prompts to describe your changes"
+          echo "   3. Commit the generated .changeset/*.md file"
+          echo ""
+          echo "💡 Learn more: https://github.com/changesets/changesets"
+          echo ""
+          exit 1
+        fi
+
+        echo ""
+        echo "✅ Changeset found:"
+        echo "$CHANGESET_FILES"
