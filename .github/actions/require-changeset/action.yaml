@@ -34,7 +34,12 @@ runs:
           exit 0
         fi
 
-        # TODO: Skip guard for dependabot PRs
+        if [[ "$ACTOR" == "dependabot[bot]" ]] || [[ "$HEAD_REF" == dependabot/* ]]; then
+          echo "ℹ️ Dependabot PR detected, skipping changeset check."
+          exit 0
+        fi
+
+        # TODO: skip dependbot here
 
         # Skip guard for PRs with skip changeset check label
         if [[ "$PR_TITLE" == *"$SKIP_LABEL"* ]] || [[ "$PR_BODY" == *"$SKIP_LABEL"* ]]; then

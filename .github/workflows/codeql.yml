@@ -88,12 +88,73 @@ jobs:
         with:
           output: results.sarif
 
-      - name: Post CodeQL summary to PR
+      - name: Summarize CodeQL alerts for PR
+        if: ${{ github.event_name == 'pull_request' }}
+        id: summarize
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const ref   = context.payload.pull_request.head.sha;
+
+            // Pull all alerts for this PR head SHA (paginate)
+            const per_page = 100;
+            let page = 1;
+            let all = [];
+            for (;;) {
+              const { data } = await github.request('GET /repos/{owner}/{repo}/code-scanning/alerts', {
+                owner, repo, per_page, page, ref
+              });
+              all = all.concat(data);
+              if (data.length < per_page) break;
+              page++;
+            }
+
+            // Count by security severity level (critical/high/medium/low)
+            const levels = ['critical','high','medium','low'];
+            const counts = Object.fromEntries(levels.map(l => [l, 0]));
+            for (const a of all) {
+              const lvl = a.rule?.security_severity_level || 'low'; // default if missing
+              if (counts[lvl] !== undefined) counts[lvl] += 1;
+            }
+            const total = all.length;
+
+            // Also count by result level (error/warning/note) as a secondary view
+            const levels2 = ['error','warning','note'];
+            const counts2 = Object.fromEntries(levels2.map(l => [l, 0]));
+            for (const a of all) {
+              const lvl = a.rule?.severity || a.most_recent_instance?.severity || 'note';
+              if (counts2[lvl] !== undefined) counts2[lvl] += 1;
+            }
+
+            // Build markdown
+            const mk = [
+              '### 🔒 CodeQL Security Scan',
+              `**Total alerts:** ${total}`,
+              '',
+              '**By severity (security_severity_level):**',
+              `- critical: ${counts.critical}`,
+              `- high: ${counts.high}`,
+              `- medium: ${counts.medium}`,
+              `- low: ${counts.low}`,
+              '',
+              '**By result level:**',
+              `- error: ${counts2.error}`,
+              `- warning: ${counts2.warning}`,
+              `- note: ${counts2.note}`,
+              '',
+              `- Workflow: [${process.env.GITHUB_WORKFLOW} run](${process.env.GITHUB_SERVER_URL}/${owner}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID})`,
+              `- Full results: [Code scanning alerts](${process.env.GITHUB_SERVER_URL}/${owner}/${repo}/security/code-scanning)`,
+              '',
+              '> This comment updates automatically when new analysis runs.'
+            ].join('\n');
+            core.setOutput('markdown', mk);
+
+      - name: Post CodeQL severity summary (sticky)
         if: ${{ github.event_name == 'pull_request' }}
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: codeql-report
-          message: |
-            ### 🔒 CodeQL Security Scan
-            - Workflow: [${{ github.workflow }} run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            - Full results: [Code scanning alerts](${{ github.server_url }}/${{ github.repository }}/security/code-scanning)
+          message: ${{ steps.summarize.outputs.markdown }}
