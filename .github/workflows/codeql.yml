@@ -20,6 +20,31 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Check if Code Scanning is enabled
+        id: check-scan
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            try {
+              await github.request('GET /repos/{owner}/{repo}/code-scanning/alerts', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 1
+              });
+              core.notice("✅ Code Scanning is enabled. Proceeding with CodeQL.");
+              core.setOutput('enabled', 'true');
+            } catch (e) {
+              core.warning("⚠️ Code Scanning is not enabled for this repository. Enable it under Settings → Security & analysis.");
+              core.setOutput('enabled', 'false');
+            }
+
+      - name: Exit if Code Scanning disabled
+        if: steps.check-scan.outputs.enabled != 'true'
+        run: |
+          echo "Skipping CodeQL because Code Scanning is not enabled."
+          exit 0
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
