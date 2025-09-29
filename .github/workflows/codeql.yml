@@ -1,0 +1,160 @@
+name: CodeQL
+on:
+  workflow_call:  # reusable called by other workflows
+    inputs:
+      languages:
+        required: false
+        type: string
+        default: 'javascript'
+  schedule:
+    - cron: '0 6 * * 1'   # weekly scan (runs standalone)
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      # required permissions only applies when run by itself, if run as workflow_call parent must specify the permissions
+      security-events: write
+      pull-requests: write
+
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+     
+      - name: Check Code Scanning setup
+        id: check-scan
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            let enabled = false;
+            let defaultSetup = false;
+
+            // 1) Is Code Scanning enabled at all?
+            try {
+              await github.request('GET /repos/{owner}/{repo}/code-scanning/alerts', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 1
+              });
+              enabled = true;
+            } catch (e) {
+              core.warning("⚠️ Code Scanning is not enabled. Enable it under Settings → Security & analysis.");
+              core.setOutput('enabled', 'false');
+              core.setOutput('defaultSetup', 'unknown');
+              return;
+            }
+
+            // 2) Is Default setup configured?
+            try {
+              const resp = await github.request('GET /repos/{owner}/{repo}/code-scanning/default-setup', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              if (resp.status === 200 && resp.data?.state === 'configured') {
+                defaultSetup = true;
+              }
+            } catch (e) {
+              // 404 means default setup not configured => advanced mode is allowed
+            }
+
+            if (enabled && defaultSetup) {
+              core.warning("⚠️ Code Scanning Default setup is enabled. Disable it to use this advanced workflow.");
+              core.setOutput('enabled', 'false');
+              core.setOutput('defaultSetup', 'true');
+              return;
+            }
+
+            core.notice("✅ Code Scanning (advanced mode) is enabled. Proceeding with CodeQL.");
+            core.setOutput('enabled', 'true');
+            core.setOutput('defaultSetup', 'false');
+
+      - name: Exit if Code Scanning unavailable or Default setup is on
+        if: ${{ steps.check-scan.outputs.enabled != 'true' || steps.check-scan.outputs.defaultSetup == 'true' }}
+        run: |
+          echo "Skipping CodeQL (Code Scanning disabled or Default setup is enabled)."
+          exit 0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ inputs.languages }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          output: results.sarif
+
+      - name: Summarize CodeQL alerts for PR
+        if: ${{ github.event_name == 'pull_request' }}
+        id: summarize
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const ref   = context.payload.pull_request.head.sha;
+
+            // Pull all alerts for this PR head SHA (paginate)
+            const per_page = 100;
+            let page = 1;
+            let all = [];
+            for (;;) {
+              const { data } = await github.request('GET /repos/{owner}/{repo}/code-scanning/alerts', {
+                owner, repo, per_page, page, ref
+              });
+              all = all.concat(data);
+              if (data.length < per_page) break;
+              page++;
+            }
+
+            // Count by security severity level (critical/high/medium/low)
+            const levels = ['critical','high','medium','low'];
+            const counts = Object.fromEntries(levels.map(l => [l, 0]));
+            for (const a of all) {
+              const lvl = a.rule?.security_severity_level || 'low'; // default if missing
+              if (counts[lvl] !== undefined) counts[lvl] += 1;
+            }
+            const total = all.length;
+
+            // Also count by result level (error/warning/note) as a secondary view
+            const levels2 = ['error','warning','note'];
+            const counts2 = Object.fromEntries(levels2.map(l => [l, 0]));
+            for (const a of all) {
+              const lvl = a.rule?.severity || a.most_recent_instance?.severity || 'note';
+              if (counts2[lvl] !== undefined) counts2[lvl] += 1;
+            }
+
+            // Build markdown
+            const mk = [
+              '### 💂‍♂️ CodeQL Security Scan 💂‍♂️',
+              `**Total alerts:** ${total}`,
+              '',
+              '**By severity (security_severity_level):**',
+              `- critical: ${counts.critical}`,
+              `- high: ${counts.high}`,
+              `- medium: ${counts.medium}`,
+              `- low: ${counts.low}`,
+              '',
+              '**By result level:**',
+              `- error: ${counts2.error}`,
+              `- warning: ${counts2.warning}`,
+              `- note: ${counts2.note}`,
+              '',
+              `- Workflow: [${process.env.GITHUB_WORKFLOW} run](${process.env.GITHUB_SERVER_URL}/${owner}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID})`,
+              `- Full results: [Code scanning alerts](${process.env.GITHUB_SERVER_URL}/${owner}/${repo}/security/code-scanning)`,
+              '',
+              '> This comment updates automatically when new analysis runs.'
+            ].join('\n');
+            core.setOutput('markdown', mk);
+
+      - name: Post CodeQL severity summary (sticky)
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: codeql-report
+          message: ${{ steps.summarize.outputs.markdown }}
