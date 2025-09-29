@@ -46,20 +46,52 @@ jobs:
         node-version: [22]
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false # so we control the push identity
+      
+      # Setup Node.js with pnpm
       - uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ matrix.node-version }}
+
+      # Import the GPG key into the runner
+      - name: Import GPG key
+        id: gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+       # Configure git to sign commits/tags with the imported key
+      - name: Configure git signing
+        run: |
+          git config --global user.name  "CI Bot"
+          git config --global user.email "deresegetachew@gmail.com"
+          git config --global commit.gpgsign true
+          git config --global tag.gpgSign true
+          git config --global user.signingkey ${{ steps.gpg.outputs.keyid }}
+
+      # Set up authentication to push changes using the bot token
+      - name: Set up auth with bot token
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.BOT_TOKEN }}@github.com/${{ github.repository }}.git
+          
+      # Download build artifacts to the 'packages' directory
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: dist-packages
           path: packages
+      
+     # Add a debugging step to list the contents of the packages directory
       - name: Debug downloaded artifacts
         run: |
           echo "Contents after artifact download:"
           find packages -name "*.js" -o -name "*.mjs" -o -name "*.d.ts" | head -10
           echo "Package directories:"
           ls -la packages/*/dist/ 2>/dev/null || echo "No dist directories found"
+
+      # Create Release Pull Request or Publish
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
