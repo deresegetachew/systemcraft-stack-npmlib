@@ -70,6 +70,38 @@ This project uses [Changesets](https://github.com/changesets/changesets) for ver
 
 All pull requests that modify code must include a changeset file. This is enforced by our CI workflow. If your PR doesn't need a changeset (e.g., documentation updates, CI changes), you can skip this requirement by adding `[skip changeset check]` to your PR title or description.
 
+## 🧩 Using as a Template
+
+This repository is already enabled as a GitHub Template.
+
+### Create a new repository from this template:
+
+- On the main page of this repository, click the green **Use this template** button.
+- Choose **Create a new repository**.
+- Fill in the repository name and other details, then click **Create repository from template**.
+
+After creating a repository from this template, you must complete the following setup:
+
+- **Set the required GitHub secrets:**
+  - Navigate to **Settings → Secrets and variables → Actions**.
+  - Add the following secrets with appropriate values:
+    - `BOT_TOKEN` (actually a GitHub Personal Access Token)
+    - `NPM_TOKEN`
+    - `GPG_PRIVATE_KEY`
+    - `GPG_PASSPHRASE`
+- **Configure branch protection and required checks:**
+  - Go to **Settings → Branches → Branch protection rules**.
+  - Add or edit rules for your main branch to require:
+    - Status checks to pass before merging.
+    - Required status checks including:
+      - `Build (Node 22)`
+      - `CodeQL Analyze`
+- **Verify GPG key UID:**
+  - Ensure that the GPG private key's UID includes a valid email address enclosed in `< >`.
+  - This email must match one of your verified GitHub account emails to enable signature verification.
+
+Following these steps will help you quickly bootstrap and maintain your project using this template repository.
+
 ## 🛠️ Development Tools
 
 - **TypeScript** - Type-safe JavaScript development
@@ -87,7 +119,7 @@ This repository uses several GitHub secrets for automated publishing, signing, a
 |-------------|-------------|----------|
 | `GPG_PRIVATE_KEY` | Private GPG key for signing commits and tags | Signing release commits and tags during automated publishing |
 | `GPG_PASSPHRASE` | Passphrase for the GPG private key | Unlocking the GPG key during CI operations |
-| `BOT_TOKEN` | GitHub Personal Access Token with appropriate permissions | Pushing signed commits/tags and creating release PRs |
+| `BOT_TOKEN` | GitHub Personal Access Token (PAT) with appropriate permissions (named BOT_TOKEN in this repo) | Pushing signed commits/tags and creating release PRs |
 | `NPM_TOKEN` | NPM authentication token | Publishing packages to npm registry |
 
 ### Setting up the Secrets
@@ -109,7 +141,7 @@ This repository uses several GitHub secrets for automated publishing, signing, a
 
 2. **GPG_PASSPHRASE**: The passphrase you used when creating your GPG key.
 
-3. **BOT_TOKEN**: Create a GitHub Personal Access Token with the following permissions:
+3. **BOT_TOKEN**: Create a GitHub Personal Access Token (PAT) with the following permissions :
    - `repo` (Full control of private repositories)
    - `workflow` (Update GitHub Action workflows)
    
@@ -153,4 +185,3 @@ If you have any questions or need help, please:
 3. Reach out to the maintainers
 
 ---
-
