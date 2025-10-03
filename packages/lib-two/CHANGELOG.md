@@ -1,5 +1,13 @@
 # @systemcraft/lib-two
 
+## 0.1.6
+
+### Patch Changes
+
+- 81b22d0: playing with codeql
+- Updated dependencies [81b22d0]
+  - @systemcraft/lib-one@0.1.6
+
 ## 0.1.5
 
 ### Patch Changes

@@ -1,4 +1,10 @@
-# SystemCraft
+# systemcraft/play-npmlib
+
+[![CI/CD](https://github.com/deresegetachew/play-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/play-npmlib/actions/workflows/main.yaml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/deresegetachew/play-npmlib/codeql.yml?label=CodeQL&logo=github)](https://github.com/deresegetachew/play-npmlib/actions/workflows/codeql.yml)
+[![GitHub release](https://img.shields.io/github/release/deresegetachew/play-npmlib.svg)](https://github.com/deresegetachew/play-npmlib/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 
 A monorepo TypeScript libraries playground with modern tooling and best practices.
 
@@ -70,6 +76,77 @@ This project uses [Changesets](https://github.com/changesets/changesets) for ver
 
 All pull requests that modify code must include a changeset file. This is enforced by our CI workflow. If your PR doesn't need a changeset (e.g., documentation updates, CI changes), you can skip this requirement by adding `[skip changeset check]` to your PR title or description.
 
+## 🧩 Using as a Template
+
+This repository is configured as a GitHub Template, making it easy to create new TypeScript monorepo projects with modern CI/CD pipelines.
+
+### 🚀 Quick Setup
+
+1. **Create Repository from Template**
+   - Click the green **"Use this template"** button on GitHub
+   - Choose **"Create a new repository"**
+   - Fill in your repository name and settings
+
+2. **Initial Customization**
+   ```bash
+   # Clone your new repository
+   git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+   cd YOUR_REPO_NAME
+   
+   # Install dependencies
+   pnpm install
+   ```
+
+3. **Update Project Files** ⚠️
+   - **README.md**: Update title, badge URLs, and package descriptions
+   - **LICENSE**: Update copyright holder name and year
+   - **package.json**: Update name, description, author, and repository URLs
+   - **packages/*/package.json**: Update package names and scopes
+
+### 🔐 Configure GitHub Secrets
+
+Navigate to **Settings → Secrets and variables → Actions** and add:
+
+| Secret | Description | Required For |
+|--------|-------------|--------------|
+| `BOT_TOKEN` | GitHub Personal Access Token with repo/workflow permissions | Automated releases & PR creation |
+| `NPM_TOKEN` | NPM automation token | Package publishing |
+| `GPG_PRIVATE_KEY` | ASCII-armored GPG private key | Signing commits/tags |
+| `GPG_PASSPHRASE` | Passphrase for GPG key | GPG operations |
+
+### 🛡️ Setup Branch Protection
+
+Go to **Settings → Branches → Branch protection rules**:
+
+1. **Add rule for main branch**
+2. **Enable required status checks:**
+   - ✅ `build (22)` - Build and test job
+   - ✅ `analyze` - CodeQL security analysis
+3. **Additional recommended settings:**
+   - Require branches to be up to date
+   - Include administrators
+   - Allow force pushes (for release automation)
+
+### 🔧 Verify Setup
+
+After configuration, test your setup:
+
+```bash
+# Create a test changeset
+pnpm changeset
+
+# Push changes to trigger CI
+git add . && git commit -m "test: verify CI setup"
+git push origin main
+```
+
+Check that:
+- ✅ CI workflows run successfully
+- ✅ Status checks appear and pass
+- ✅ GPG signatures are verified (look for "Verified" badge on commits)
+
+> **💡 Pro Tip**: The GPG key email must match a verified email in your GitHub account for signature verification to work.
+
 ## 🛠️ Development Tools
 
 - **TypeScript** - Type-safe JavaScript development
@@ -87,7 +164,7 @@ This repository uses several GitHub secrets for automated publishing, signing, a
 |-------------|-------------|----------|
 | `GPG_PRIVATE_KEY` | Private GPG key for signing commits and tags | Signing release commits and tags during automated publishing |
 | `GPG_PASSPHRASE` | Passphrase for the GPG private key | Unlocking the GPG key during CI operations |
-| `BOT_TOKEN` | GitHub Personal Access Token with appropriate permissions | Pushing signed commits/tags and creating release PRs |
+| `BOT_TOKEN` | GitHub Personal Access Token (PAT) with appropriate permissions (named BOT_TOKEN in this repo) | Pushing signed commits/tags and creating release PRs |
 | `NPM_TOKEN` | NPM authentication token | Publishing packages to npm registry |
 
 ### Setting up the Secrets
@@ -96,11 +173,20 @@ This repository uses several GitHub secrets for automated publishing, signing, a
    ```bash
    gpg --armor --export-secret-key "your-key-id" > private-key.asc
    ```
+
+   ⚠️ **Important:** Your GPG key must include a UID with a valid email in angle brackets, e.g.:
+
+   ```
+   uid   CI Bot <email@email.com>
+   ```
+
+   If your UID only contains a name without `<email>`, GitHub will not be able to verify signatures and will show commits as "Unverified". Make sure the email matches one of your verified GitHub account emails.
+
    Copy the contents of `private-key.asc` into this secret.
 
 2. **GPG_PASSPHRASE**: The passphrase you used when creating your GPG key.
 
-3. **BOT_TOKEN**: Create a GitHub Personal Access Token with the following permissions:
+3. **BOT_TOKEN**: Create a GitHub Personal Access Token (PAT) with the following permissions :
    - `repo` (Full control of private repositories)
    - `workflow` (Update GitHub Action workflows)
    
@@ -144,4 +230,3 @@ If you have any questions or need help, please:
 3. Reach out to the maintainers
 
 ---
-
