@@ -1,0 +1,51 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/" # looks at the repo root for lock file  pnpm-lock.yaml
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "08:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 7
+    labels:
+      - "dependencies"
+    # reviewers: []
+    # assignees: []
+
+    #Group related updates into a single PR
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+      eslint-tooling:
+        patterns: 
+          - "eslint*"
+          - "prettier*"
+          - "@types/*"
+      types:
+        patterns:
+          - "@types/*"
+      jest:
+        patterns:
+          - "jest*"
+          - "ts-jest*"
+
+    # Ignore updates to specific dependencies
+    # ignore:
+    #   - dependency-name: "react"
+
+    # Keep our CI workflow deps up to date things like actions/checkout@v3
+  - package-ecosystem: "github-actions"
+    directory: "/"   # looks at the repo root for .github/workflows
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "08:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 7
+    labels:
+      - "ci"
+      - "dependencies"
+      
