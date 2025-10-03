@@ -96,7 +96,7 @@ jobs:
           env | grep -E 'GIT_(AUTHOR|COMMITTER)_' || true
       # Download build artifacts to the 'packages' directory
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: dist-packages
           path: packages
