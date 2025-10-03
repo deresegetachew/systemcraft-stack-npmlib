@@ -96,6 +96,15 @@ This repository uses several GitHub secrets for automated publishing, signing, a
    ```bash
    gpg --armor --export-secret-key "your-key-id" > private-key.asc
    ```
+
+   ⚠️ **Important:** Your GPG key must include a UID with a valid email in angle brackets, e.g.:
+
+   ```
+   uid   CI Bot <email@email.com>
+   ```
+
+   If your UID only contains a name without `<email>`, GitHub will not be able to verify signatures and will show commits as "Unverified". Make sure the email matches one of your verified GitHub account emails.
+
    Copy the contents of `private-key.asc` into this secret.
 
 2. **GPG_PASSPHRASE**: The passphrase you used when creating your GPG key.

@@ -8,6 +8,7 @@ on:
 jobs:
 
   build:
+    name: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -36,6 +37,7 @@ jobs:
 
   publish:
     needs: build
+    name: publish
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:

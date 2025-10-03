@@ -1,4 +1,4 @@
-name: CodeQL
+name: CodeQLAnalyze
 on:
   workflow_call:  # reusable called by other workflows
     inputs:
