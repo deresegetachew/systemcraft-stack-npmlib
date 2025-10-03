@@ -20,7 +20,7 @@ This monorepo contains the following packages:
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/deresegetachew/play-npmlib
 cd systemcraft
 
 # Install dependencies
@@ -36,8 +36,6 @@ pnpm run build
 # Run tests
 pnpm run test
 
-# Start development mode (if available)
-pnpm run dev
 ```
 
 ## 🏗️ Project Structure
