@@ -3,7 +3,7 @@
 	"devDependencies": {
 		"@changesets/cli": "^2.29.7",
 		"tsup": "^8.5.0",
-		"typescript": "^5.9.2"
+		"typescript": "^5.9.3"
 	},
 	"scripts": {
 		"release": "changeset publish"
