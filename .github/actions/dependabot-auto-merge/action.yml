@@ -1,0 +1,61 @@
+name: Dependabot Auto Merge
+description: Automatically merge Dependabot PRs that pass all checks and have the required approvals.
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  permissions:
+    contents: write
+    pull-requests: write
+  
+jobs:
+  automerge:
+    if: github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide if eligible (patch/minor)
+        id: elig
+        run: |
+         
+          echo "Checking if PR #${{ github.event.pull_request.number }} is eligible for auto-merge..."
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_BODY="${{ github.event.pull_request.body }}"
+          echo "PR Title: $PR_TITLE"
+          echo "PR Body: $PR_BODY"
+
+          # Extract version numbers from title using regex
+          if [[ "$PR_TITLE" =~ bump.*from[[:space:]]+([0-9]+)\.([0-9]+)\.([0-9]+)[[:space:]]+to[[:space:]]+([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            FROM_MAJOR=${BASH_REMATCH[1]}
+            FROM_MINOR=${BASH_REMATCH[2]}
+            FROM_PATCH=${BASH_REMATCH[3]}
+            TO_MAJOR=${BASH_REMATCH[4]}
+            TO_MINOR=${BASH_REMATCH[5]}
+            TO_PATCH=${BASH_REMATCH[6]}
+            
+            echo "Version change: $FROM_MAJOR.$FROM_MINOR.$FROM_PATCH → $TO_MAJOR.$TO_MINOR.$TO_PATCH"
+            
+            # Check if it's a patch update (same major.minor, different patch)
+            if [[ $FROM_MAJOR -eq $TO_MAJOR && $FROM_MINOR -eq $TO_MINOR && $FROM_PATCH -lt $TO_PATCH ]]; then
+              echo "✅ Patch update detected - eligible for auto-merge"
+              echo "eligible=true" >> $GITHUB_OUTPUT
+            # Check if it's a minor update (same major, incremented minor, patch reset to 0 or similar)
+            elif [[ $FROM_MAJOR -eq $TO_MAJOR && $FROM_MINOR -lt $TO_MINOR ]]; then
+              echo "✅ Minor update detected - eligible for auto-merge"
+              echo "eligible=true" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Major update or downgrade detected - not eligible for auto-merge"
+              echo "eligible=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "❌ Could not parse version numbers from PR title - not eligible for auto-merge"
+            echo "eligible=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Auto-merge if eligible
+        if: steps.elig.outputs.eligible == 'true'
+        run: gh pr --merge --auto "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
