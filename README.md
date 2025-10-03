@@ -5,6 +5,7 @@
 [![GitHub release](https://img.shields.io/github/release/deresegetachew/play-npmlib.svg)](https://github.com/deresegetachew/play-npmlib/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+
 A monorepo TypeScript libraries playground with modern tooling and best practices.
 
 ## 📦 Packages
@@ -77,35 +78,74 @@ All pull requests that modify code must include a changeset file. This is enforc
 
 ## 🧩 Using as a Template
 
-This repository is already enabled as a GitHub Template.
+This repository is configured as a GitHub Template, making it easy to create new TypeScript monorepo projects with modern CI/CD pipelines.
 
-### Create a new repository from this template:
+### 🚀 Quick Setup
 
-- On the main page of this repository, click the green **Use this template** button.
-- Choose **Create a new repository**.
-- Fill in the repository name and other details, then click **Create repository from template**.
+1. **Create Repository from Template**
+   - Click the green **"Use this template"** button on GitHub
+   - Choose **"Create a new repository"**
+   - Fill in your repository name and settings
 
-After creating a repository from this template, you must complete the following setup:
+2. **Initial Customization**
+   ```bash
+   # Clone your new repository
+   git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+   cd YOUR_REPO_NAME
+   
+   # Install dependencies
+   pnpm install
+   ```
 
-- **Set the required GitHub secrets:**
-  - Navigate to **Settings → Secrets and variables → Actions**.
-  - Add the following secrets with appropriate values:
-    - `BOT_TOKEN` (actually a GitHub Personal Access Token)
-    - `NPM_TOKEN`
-    - `GPG_PRIVATE_KEY`
-    - `GPG_PASSPHRASE`
-- **Configure branch protection and required checks:**
-  - Go to **Settings → Branches → Branch protection rules**.
-  - Add or edit rules for your main branch to require:
-    - Status checks to pass before merging.
-    - Required status checks including:
-      - `Build (Node 22)`
-      - `CodeQL Analyze`
-- **Verify GPG key UID:**
-  - Ensure that the GPG private key's UID includes a valid email address enclosed in `< >`.
-  - This email must match one of your verified GitHub account emails to enable signature verification.
+3. **Update Project Files** ⚠️
+   - **README.md**: Update title, badge URLs, and package descriptions
+   - **LICENSE**: Update copyright holder name and year
+   - **package.json**: Update name, description, author, and repository URLs
+   - **packages/*/package.json**: Update package names and scopes
 
-Following these steps will help you quickly bootstrap and maintain your project using this template repository.
+### 🔐 Configure GitHub Secrets
+
+Navigate to **Settings → Secrets and variables → Actions** and add:
+
+| Secret | Description | Required For |
+|--------|-------------|--------------|
+| `BOT_TOKEN` | GitHub Personal Access Token with repo/workflow permissions | Automated releases & PR creation |
+| `NPM_TOKEN` | NPM automation token | Package publishing |
+| `GPG_PRIVATE_KEY` | ASCII-armored GPG private key | Signing commits/tags |
+| `GPG_PASSPHRASE` | Passphrase for GPG key | GPG operations |
+
+### 🛡️ Setup Branch Protection
+
+Go to **Settings → Branches → Branch protection rules**:
+
+1. **Add rule for main branch**
+2. **Enable required status checks:**
+   - ✅ `build (22)` - Build and test job
+   - ✅ `analyze` - CodeQL security analysis
+3. **Additional recommended settings:**
+   - Require branches to be up to date
+   - Include administrators
+   - Allow force pushes (for release automation)
+
+### 🔧 Verify Setup
+
+After configuration, test your setup:
+
+```bash
+# Create a test changeset
+pnpm changeset
+
+# Push changes to trigger CI
+git add . && git commit -m "test: verify CI setup"
+git push origin main
+```
+
+Check that:
+- ✅ CI workflows run successfully
+- ✅ Status checks appear and pass
+- ✅ GPG signatures are verified (look for "Verified" badge on commits)
+
+> **💡 Pro Tip**: The GPG key email must match a verified email in your GitHub account for signature verification to work.
 
 ## 🛠️ Development Tools
 
