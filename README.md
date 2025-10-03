@@ -1,7 +1,7 @@
 # systemcraft/play-npmlib
 
-[![Build](https://github.com/deresegetachew/play-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/play-npmlib/actions/workflows/main.yaml)
-[![CodeQL](https://github.com/deresegetachew/play-npmlib/workflows/CodeQLAnalyze/badge.svg)](https://github.com/deresegetachew/play-npmlib/actions/workflows/codeql.yml)
+[![CI/CD](https://github.com/deresegetachew/play-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/play-npmlib/actions/workflows/main.yaml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/deresegetachew/play-npmlib/codeql.yml?label=CodeQL&logo=github)](https://github.com/deresegetachew/play-npmlib/actions/workflows/codeql.yml)
 [![GitHub release](https://img.shields.io/github/release/deresegetachew/play-npmlib.svg)](https://github.com/deresegetachew/play-npmlib/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
