@@ -1,5 +1,11 @@
 # @systemcraft/lib-one
 
+## 0.1.6
+
+### Patch Changes
+
+- 81b22d0: playing with codeql
+
 ## 0.1.5
 
 ### Patch Changes
