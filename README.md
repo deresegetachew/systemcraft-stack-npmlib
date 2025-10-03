@@ -1,5 +1,10 @@
 # SystemCraft
 
+[![Build](https://github.com/deresegetachew/play-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/play-npmlib/actions/workflows/main.yaml)
+[![CodeQL](https://github.com/deresegetachew/play-npmlib/workflows/CodeQLAnalyze/badge.svg)](https://github.com/deresegetachew/play-npmlib/actions/workflows/codeql.yml)
+[![Release](https://github.com/deresegetachew/play-npmlib/releases/latest/badge.svg)](https://github.com/deresegetachew/play-npmlib/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A monorepo TypeScript libraries playground with modern tooling and best practices.
 
 ## 📦 Packages
