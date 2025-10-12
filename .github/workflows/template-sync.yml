@@ -16,7 +16,7 @@ concurrency:
 # Repo-level ENV defaults; override in the GENERATED repo via Actions → Variables
 env:
   # The official template repo — hardcoded, since this is the source of truth
-  TEMPLATE_REPO:         deresegetachew/systemcraft-play-npmlib
+  TEMPLATE_REPO:         deresegetachew/systemcraft-stack-npmlib
   TEMPLATE_REF:          main
   # Turn the sync on/off in generated repos:
   TEMPLATE_SYNC_ENABLED: ${{ vars.TEMPLATE_SYNC_ENABLED || 'true' }}
