@@ -1,8 +1,8 @@
-# systemcraft/systemcraft-play-npmlib
+# systemcraft/systemcraft-stack-npmlib
 
-[![CI/CD](https://github.com/deresegetachew/systemcraft-play-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/systemcraft-play-npmlib/actions/workflows/main.yaml)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/deresegetachew/systemcraft-play-npmlib/codeql.yml?label=CodeQL&logo=github)](https://github.com/deresegetachew/systemcraft-play-npmlib/actions/workflows/codeql.yml)
-[![GitHub release](https://img.shields.io/github/release/deresegetachew/systemcraft-play-npmlib.svg)](https://github.com/deresegetachew/systemcraft-play-npmlib/releases)
+[![CI/CD](https://github.com/deresegetachew/systemcraft-stack-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/systemcraft-stack-npmlib/actions/workflows/main.yaml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/deresegetachew/systemcraft-stack-npmlib/codeql.yml?label=CodeQL&logo=github)](https://github.com/deresegetachew/systemcraft-stack-npmlib/actions/workflows/codeql.yml)
+[![GitHub release](https://img.shields.io/github/release/deresegetachew/systemcraft-stack-npmlib.svg)](https://github.com/deresegetachew/systemcraft-stack-npmlib/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
@@ -26,7 +26,7 @@ This monorepo contains the following packages:
 
 ```bash
 # Clone the repository
-git clone https://github.com/deresegetachew/systemcraft-play-npmlib
+git clone https://github.com/deresegetachew/systemcraft-stack-npmlib
 cd systemcraft
 
 # Install dependencies
@@ -135,7 +135,7 @@ Navigate to **Settings → Secrets and variables → Actions → Variables** and
 The workflow automatically:
 
 1. **Runs weekly** (Mondays at 07:00 UTC) or can be triggered manually
-2. **Fetches the latest template** from `deresegetachew/systemcraft-play-npmlib@main`
+2. **Fetches the latest template** from `deresegetachew/systemcraft-stack-npmlib@main`
 3. **Syncs files** while excluding configured paths (packages, changesets, licenses, etc.)
 4. **Creates/updates a PR** with the changes
 
