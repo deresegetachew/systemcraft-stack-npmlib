@@ -151,7 +151,17 @@ The following labels are automatically created when PRs are opened:
 **Why square brackets `[...]`?**  
 We use square brackets in label names for visual distinction and to prevent accidental matches with regular text in PR titles/descriptions.
 
-### �🔐 Configure GitHub Secrets
+### Composite Actions
+
+The template includes reusable composite actions for common workflow tasks:
+
+| Action | Purpose | Inputs | Usage |
+|---------|---------|--------|--------|
+| `setup-node-pnpm` | Sets up Node.js with pnpm and caching | `node-version` | Used in all workflows for consistent environment setup |
+| `require-changeset` | Validates PRs require changesets unless skipped | `skip-label` | Used in main workflow for changeset enforcement |
+| `setup-ci-git-identity` | Complete git setup with identity validation, GPG key import, and signing configuration | `purpose`, `enable-gpg-signing`, `gpg-private-key`, `gpg-passphrase` (all optional) | Used in main and template-sync workflows for complete git configuration |
+
+### 🔐 Configure GitHub Secrets
 
 Navigate to **Settings → Secrets and variables → Actions** and add:
 
@@ -159,8 +169,8 @@ Navigate to **Settings → Secrets and variables → Actions** and add:
 |--------|-------------|--------------|
 | `BOT_TOKEN` | GitHub Personal Access Token with repo/workflow permissions | Automated releases & PR creation |
 | `NPM_TOKEN` | NPM automation token | Package publishing |
-| `GPG_PRIVATE_KEY` | ASCII-armored GPG private key | Signing commits/tags |
-| `GPG_PASSPHRASE` | Passphrase for GPG key | GPG operations |
+| `GPG_PRIVATE_KEY` | ASCII-armored GPG private key | Signing release commits and template sync commits |
+| `GPG_PASSPHRASE` | Passphrase for GPG key | GPG operations for all signed commits |
 
 ### 🔄 Template Synchronization Configuration
 
@@ -177,6 +187,8 @@ Navigate to **Settings → Secrets and variables → Actions → Variables** and
 | `TARGET_BRANCH` | `main` | Target branch for sync PRs |
 | `SYNC_BRANCH` | `chore/sync-template` | Branch name for sync PRs |
 | `TEMPLATE_SYNC_LABEL` | `template-sync` | Label to apply to sync PRs |
+| `CI_GPG_USER_NAME` | **Required** | Git user name for all automated commits (releases and template sync) |
+| `CI_GPG_USER_EMAIL` | **Required** | Git user email for all automated commits (releases and template sync) |
 
 #### How Template Sync Works
 
@@ -211,6 +223,37 @@ SYNC_BRANCH = chore/sync-template-to-develop
 ```
 
 This enables automated pull requests when the template repository is updated, helping keep your derived repositories in sync with the latest improvements and security updates while preserving your custom packages and configuration.
+
+#### Git Identity Configuration
+
+**⚠️ REQUIRED**: You must configure git identity for GPG-signed release commits.
+
+**Mandatory configuration**:
+
+```bash
+# Set via Repository Variables (Settings → Secrets and variables → Actions → Variables)
+CI_GPG_USER_NAME = "Your Full Name"      # Must match your GPG key name
+CI_GPG_USER_EMAIL = "your@email.com"     # Must match your GPG key UID email
+```
+
+**Critical Requirements**:
+
+- ✅ **Name**: Must match the name in your GPG key
+- ✅ **Email**: Must match an email in your GPG key's UID
+- ✅ **Verified**: Email must be verified in your GitHub account
+- ❌ **Missing Config**: Workflow will fail with helpful error message
+
+**Why This Matters**:
+
+- Ensures GPG signatures show as "Verified" on GitHub
+- Prevents commits being attributed to template author
+- Maintains proper audit trail for releases
+
+#### Template Sync Identity (Optional)
+
+For template sync commits, you can optionally customize the bot identity:
+
+
 
 ### 🛡️ Setup Branch Protection
 

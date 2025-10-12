@@ -63,28 +63,13 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      # Import the GPG key into the runner
-      - name: Import GPG key
-        id: gpg
-        uses: crazy-max/ghaction-import-gpg@v6
+       # Configure git identity and GPG signing for release commits
+      - uses: ./.github/actions/setup-ci-git-identity
         with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-
-       # Configure git to sign commits/tags with the imported key for CI commits
-      - name: Configure git signing
-        run: |
-          git config --global user.name  "deresegetachew"
-          git config --global user.email "deresegetachew@gmail.com"
-          git config --global commit.gpgsign true
-          git config --global tag.gpgSign true
-          git config --global gpg.program gpg
-          git config --global user.signingkey ${{ steps.gpg.outputs.fingerprint }}
-          git config --global user.useConfigOnly true # Ensures git uses the configured user.name and user.email only and not bot defaults
-          echo "GIT_AUTHOR_NAME=deresegetachew" >> $GITHUB_ENV # Set env vars for commit author/committer
-          echo "GIT_AUTHOR_EMAIL=deresegetachew@gmail.com" >> $GITHUB_ENV # Set env vars for commit author/committer
-          echo "GIT_COMMITTER_NAME=deresegetachew" >> $GITHUB_ENV # Set env vars for commit author/committer
-          echo "GIT_COMMITTER_EMAIL=deresegetachew@gmail.com" >> $GITHUB_ENV # Set env vars for commit author/committer
+          purpose: 'GPG-signed release commits'
+          enable-gpg-signing: 'true'
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       # Set up authentication to push changes using the bot / pat token
       - name: Set up auth with bot token
