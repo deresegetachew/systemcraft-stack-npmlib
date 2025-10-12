@@ -33,7 +33,7 @@ jobs:
   sync:
     name: Sync from template systemcraft/play-npmlib (exclude packages, licenses, changesets)
     # IMPORTANT: do NOT run on the template repo itself
-    if: ${{ github.repository != env.TEMPLATE_REPO }}
+    if: ${{ github.repository != 'deresegetachew/systemcraft-stack-npmlib' }}
     runs-on: ubuntu-latest
 
     steps:
