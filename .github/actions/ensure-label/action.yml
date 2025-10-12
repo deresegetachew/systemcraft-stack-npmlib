@@ -47,10 +47,10 @@ runs:
 
           echo "🔧 Ensuring label: '$name' (color=$color)"
           # Try edit first; if it doesn't exist, create it.
-          if gh label edit "$name" --color "$color" --description "$desc" >/dev/null 2>&1; then
+          if gh label edit "$name" --color "$color" --description "$desc"; then
             echo "✅ Updated label '$name'"
           else
-            if gh label create "$name" --color "$color" --description "$desc" >/dev/null 2>&1; then
+            if gh label create "$name" --color "$color" --description "$desc"; then
               echo "✅ Created label '$name'"
             else
               echo "❌ Failed to create/update label '$name'"; exit 1

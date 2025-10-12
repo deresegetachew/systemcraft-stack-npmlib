@@ -11,6 +11,9 @@ jobs:
   ensure-labels:
     name: Ensure required labels exist
     runs-on: ubuntu-latest
+    permissions:
+          contents: write
+          issues: write
     steps:
       - uses: actions/checkout@v4
       
