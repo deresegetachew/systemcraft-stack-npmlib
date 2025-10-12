@@ -1,0 +1,102 @@
+name: Sync from Template (selected paths, exclude packages)
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: template-sync
+  cancel-in-progress: false
+
+# Repo-level ENV defaults; override in the GENERATED repo via Actions → Variables
+env:
+  # The official template repo — hardcoded, since this is the source of truth
+  TEMPLATE_REPO:         deresegetachew/systemcraft-play-npmlib
+  TEMPLATE_REF:          main
+  # Turn the sync on/off in generated repos:
+  TEMPLATE_SYNC_ENABLED: ${{ vars.TEMPLATE_SYNC_ENABLED || 'true' }}
+  # Exclusions — space-separated paths/patterns relative to template root.
+  # By default we DO NOT sync: packages, .changeset/.changesets, LICENSE/Licenses, node_modules.
+  TEMPLATE_EXCLUDE:      ${{ vars.TEMPLATE_EXCLUDE      || 'packages .changeset .changesets LICENSE LICENSES node_modules' }}
+  # Branch naming
+  TARGET_BRANCH:         ${{ vars.TARGET_BRANCH         || 'main' }}
+  SYNC_BRANCH:           ${{ vars.SYNC_BRANCH           || 'chore/sync-template' }}
+  # Optional label
+  TEMPLATE_SYNC_LABEL:   ${{ vars.TEMPLATE_SYNC_LABEL   || 'template-sync' }}
+
+jobs:
+  sync:
+    name: Sync from template systemcraft/play-npmlib (exclude packages, licenses, changesets)
+    # IMPORTANT: do NOT run on the template repo itself
+    if: ${{ github.repository != env.TEMPLATE_REPO }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check if enabled
+        if: ${{ env.TEMPLATE_SYNC_ENABLED != 'true' }}
+        run: |
+          echo "Template sync disabled (TEMPLATE_SYNC_ENABLED != 'true'). Exiting."
+          exit 0
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ env.TARGET_BRANCH }}
+
+      - name: Fetch template repository
+        run: |
+          set -euo pipefail
+          git clone --depth=1 --no-checkout "https://github.com/${{ env.TEMPLATE_REPO }}.git" /tmp/template
+          cd /tmp/template
+          git checkout "${{ env.TEMPLATE_REF }}"
+
+    #  rsync rsync stands for remote synchronization — it’s a file-copying and syncing utility that can efficiently mirror one directory tree into another,
+    # only copying changed files and deleting ones that no longer exist on the source (if you tell it to).
+      - name: Build rsync exclusion flags
+        id: excludes
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=""
+          for p in $TEMPLATE_EXCLUDE; do
+            flags="$flags --exclude=$p"
+          done
+          # Never try to copy .git
+          flags="$flags --exclude=.git"
+          echo "flags=$flags" >> "$GITHUB_OUTPUT"
+
+      - name: Copy template content (exclude configured paths)
+        run: |
+          set -euo pipefail
+          rsync -a --delete ${{ steps.excludes.outputs.flags }} /tmp/template/ ./
+
+          # Stage changes if any
+          git checkout -B "$SYNC_BRANCH"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes after sync."
+            exit 0
+          fi
+
+          git commit -m "chore: sync from ${TEMPLATE_REPO}@${TEMPLATE_REF} (excluding: ${TEMPLATE_EXCLUDE})"
+          git push -u origin "$SYNC_BRANCH" --force-with-lease
+
+      - name: Open/Update PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "chore: sync from template (excluding: ${TEMPLATE_EXCLUDE})"
+          body: |
+            Automated sync from **${{ env.TEMPLATE_REPO }}** @ `${{ env.TEMPLATE_REF }}`
+
+            **Excluded paths:** `${{ env.TEMPLATE_EXCLUDE }}`
+
+            Turn off via **Actions → Variables**: set `TEMPLATE_SYNC_ENABLED=false`.
+          branch: ${{ env.SYNC_BRANCH }}
+          base: ${{ env.TARGET_BRANCH }}
+          labels: ${{ env.TEMPLATE_SYNC_LABEL }}
+          delete-branch: false

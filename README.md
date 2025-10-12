@@ -1,8 +1,8 @@
-# systemcraft/play-npmlib
+# systemcraft/systemcraft-play-npmlib
 
-[![CI/CD](https://github.com/deresegetachew/play-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/play-npmlib/actions/workflows/main.yaml)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/deresegetachew/play-npmlib/codeql.yml?label=CodeQL&logo=github)](https://github.com/deresegetachew/play-npmlib/actions/workflows/codeql.yml)
-[![GitHub release](https://img.shields.io/github/release/deresegetachew/play-npmlib.svg)](https://github.com/deresegetachew/play-npmlib/releases)
+[![CI/CD](https://github.com/deresegetachew/systemcraft-play-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/systemcraft-play-npmlib/actions/workflows/main.yaml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/deresegetachew/systemcraft-play-npmlib/codeql.yml?label=CodeQL&logo=github)](https://github.com/deresegetachew/systemcraft-play-npmlib/actions/workflows/codeql.yml)
+[![GitHub release](https://img.shields.io/github/release/deresegetachew/systemcraft-play-npmlib.svg)](https://github.com/deresegetachew/systemcraft-play-npmlib/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
@@ -26,7 +26,7 @@ This monorepo contains the following packages:
 
 ```bash
 # Clone the repository
-git clone https://github.com/deresegetachew/play-npmlib
+git clone https://github.com/deresegetachew/systemcraft-play-npmlib
 cd systemcraft
 
 # Install dependencies
@@ -114,6 +114,56 @@ Navigate to **Settings → Secrets and variables → Actions** and add:
 | `GPG_PRIVATE_KEY` | ASCII-armored GPG private key | Signing commits/tags |
 | `GPG_PASSPHRASE` | Passphrase for GPG key | GPG operations |
 
+### 🔄 Template Synchronization Configuration
+
+This repository includes an automated template synchronization workflow that keeps downstream repositories in sync with template updates. The template sync is configured using **repository variables** (not secrets) that can be customized per repository.
+
+#### Template Sync Variables
+
+Navigate to **Settings → Secrets and variables → Actions → Variables** and configure:
+
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| `TEMPLATE_SYNC_ENABLED` | `true` | Enable/disable template synchronization |
+| `TEMPLATE_EXCLUDE` | `packages .changeset .changesets LICENSE LICENSES node_modules` | Space-separated paths to exclude from sync |
+| `TARGET_BRANCH` | `main` | Target branch for sync PRs |
+| `SYNC_BRANCH` | `chore/sync-template` | Branch name for sync PRs |
+| `TEMPLATE_SYNC_LABEL` | `template-sync` | Label to apply to sync PRs |
+
+#### How Template Sync Works
+
+The workflow automatically:
+
+1. **Runs weekly** (Mondays at 07:00 UTC) or can be triggered manually
+2. **Fetches the latest template** from `deresegetachew/systemcraft-play-npmlib@main`
+3. **Syncs files** while excluding configured paths (packages, changesets, licenses, etc.)
+4. **Creates/updates a PR** with the changes
+
+#### Customizing Template Sync
+
+**To disable template sync completely:**
+
+```bash
+# Set via GitHub UI: Settings → Secrets and variables → Actions → Variables
+TEMPLATE_SYNC_ENABLED = false
+```
+
+**To exclude additional paths:**
+
+```bash
+# Add custom paths to the default exclusions
+TEMPLATE_EXCLUDE = packages .changeset .changesets LICENSE LICENSES node_modules custom-folder config.local.json
+```
+
+**To change the target branch:**
+
+```bash
+TARGET_BRANCH = develop
+SYNC_BRANCH = chore/sync-template-to-develop
+```
+
+This enables automated pull requests when the template repository is updated, helping keep your derived repositories in sync with the latest improvements and security updates while preserving your custom packages and configuration.
+
 ### 🛡️ Setup Branch Protection
 
 Go to **Settings → Branches → Branch protection rules**:
@@ -141,6 +191,7 @@ git push origin main
 ```
 
 Check that:
+
 - ✅ CI workflows run successfully
 - ✅ Status checks appear and pass
 - ✅ GPG signatures are verified (look for "Verified" badge on commits)
@@ -170,13 +221,14 @@ This repository uses several GitHub secrets for automated publishing, signing, a
 ### Setting up the Secrets
 
 1. **GPG_PRIVATE_KEY**: Export your GPG private key in ASCII armor format:
+
    ```bash
    gpg --armor --export-secret-key "your-key-id" > private-key.asc
    ```
 
    ⚠️ **Important:** Your GPG key must include a UID with a valid email in angle brackets, e.g.:
 
-   ```
+   ```text
    uid   CI Bot <email@email.com>
    ```
 

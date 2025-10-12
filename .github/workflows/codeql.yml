@@ -19,11 +19,11 @@ jobs:
 
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
      
       - name: Check Code Scanning setup
         id: check-scan
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -91,7 +91,7 @@ jobs:
       - name: Summarize CodeQL alerts for PR
         if: ${{ github.event_name == 'pull_request' }}
         id: summarize
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
