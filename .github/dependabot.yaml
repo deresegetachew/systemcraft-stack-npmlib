@@ -6,7 +6,7 @@ updates:
       interval: "weekly"
       day: "wednesday"
       time: "08:00"
-      timezone: "UTC"
+      timezone: "Europe/Berlin"
     open-pull-requests-limit: 7
     labels:
       - "dependencies"
@@ -43,7 +43,7 @@ updates:
       interval: "weekly"
       day: "wednesday"
       time: "08:00"
-      timezone: "UTC"
+      timezone: "Europe/Berlin"
     open-pull-requests-limit: 7
     labels:
       - "ci"
