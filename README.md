@@ -74,7 +74,12 @@ This project uses [Changesets](https://github.com/changesets/changesets) for ver
 
 ### Changeset Requirements
 
-All pull requests that modify code must include a changeset file. This is enforced by our CI workflow. If your PR doesn't need a changeset (e.g., documentation updates, CI changes), you can skip this requirement by adding `[skip changeset check]` to your PR title or description.
+All pull requests that modify code must include a changeset file. This is enforced by our CI workflow. If your PR doesn't need a changeset (e.g., documentation updates, CI changes), you can skip this requirement by:
+
+- Adding `[skip changeset check]` to your PR title or description, **OR**
+- Applying the `[skip changeset check]` label to your PR
+
+**Note**: Both the label name and skip text use square brackets `[...]` for consistency.
 
 ## 🧩 Using as a Template
 
@@ -103,7 +108,35 @@ This repository is configured as a GitHub Template, making it easy to create new
    - **package.json**: Update name, description, author, and repository URLs
    - **packages/*/package.json**: Update package names and scopes
 
-### 🔐 Configure GitHub Secrets
+### � Prepare Workflow & Automatic Labels
+
+This repository uses a **Prepare workflow** (`prepare.yml`) that runs before all other workflows to handle setup tasks. The workflow automatically creates required labels for the repository.
+
+#### Automatically Created Labels
+
+The following labels are automatically created when PRs are opened:
+
+| Label | Color | Description | Usage |
+|-------|--------|-------------|--------|
+| `[template-sync]` | Blue (`b9e3ff`) | Changes from the template repo | Applied to template synchronization PRs |
+| `[skip changeset check]` | Red (`ff4d4f`) | Skip the changeset validation check | Apply to PRs that don't need changesets |
+
+#### Workflow Architecture
+
+1. **Prepare Workflow** runs first on PR events and pushes to main
+   - Creates required labels
+   - Handles other preparation tasks
+   - Extensible for future setup needs
+
+2. **Main Workflow** runs after Prepare completes successfully
+   - Guaranteed that labels exist
+   - Clean separation of concerns
+   - No duplicate setup code
+
+**Why square brackets `[...]`?**  
+We use square brackets in label names for visual distinction and to prevent accidental matches with regular text in PR titles/descriptions.
+
+### �🔐 Configure GitHub Secrets
 
 Navigate to **Settings → Secrets and variables → Actions** and add:
 
