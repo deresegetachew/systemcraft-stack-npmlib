@@ -13,7 +13,7 @@ runs:
       env:
         PR_TITLE: ${{ github.event.pull_request.title || '' }}
         PR_BODY: ${{ github.event.pull_request.body  || '' }}
-        PR_LABELS: ${{ toJson(github.event.pull_request.labels || []) }}
+        PR_LABELS: "${{ toJson(github.event.pull_request.labels || []) }}"
         ACTOR: ${{ github.actor }}
         EVENT_TYPE: ${{ github.event_name }}
         BASE_REF: ${{ github.base_ref || 'main' }}
