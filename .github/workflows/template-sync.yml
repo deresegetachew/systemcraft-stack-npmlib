@@ -87,7 +87,7 @@ jobs:
           git push -u origin "$SYNC_BRANCH" --force-with-lease
 
       - name: Open/Update PR
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           title: "chore: sync from template (excluding: ${TEMPLATE_EXCLUDE})"
           body: |
