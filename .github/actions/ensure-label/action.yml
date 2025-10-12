@@ -1,0 +1,59 @@
+name: Ensure Labels (Upsert via gh)
+description: Create or update one or more GitHub labels in the current repository.
+inputs:
+  labels_json:
+    description: >
+      JSON array of label objects: [{"name":"template-sync","color":"b9e3ff","description":"..."}].
+      "color" is hex without '#'. "description" is optional.
+    required: true
+    default: "[]"
+  token:
+    description: GitHub token with issues:write
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Show gh version
+      shell: bash
+      run: gh --version
+
+    - name: Validate JSON
+      shell: bash
+      env:
+        LABELS_JSON: ${{ inputs.labels_json }}
+      run: |
+        echo "$LABELS_JSON" | jq empty
+
+    - name: Upsert labels
+      shell: bash
+      env:
+        LABELS_JSON: ${{ inputs.labels_json }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: |
+        set -euo pipefail
+
+        # Iterate each label object in the array
+        jq -c '.[]' <<<"$LABELS_JSON" | while read -r item; do
+          name=$(jq -r '.name' <<<"$item")
+          color=$(jq -r '.color // "b9e3ff"' <<<"$item")
+          desc=$(jq -r '.description // "Created automatically by CI"' <<<"$item")
+
+          if [[ -z "$name" || "$name" == "null" ]]; then
+            echo "⚠️  Skipping label with missing 'name': $item"
+            continue
+          fi
+
+          echo "🔧 Ensuring label: '$name' (color=$color)"
+          # Try edit first; if it doesn't exist, create it.
+          if gh label edit "$name" --color "$color" --description "$desc"; then
+            echo "✅ Updated label '$name'"
+          else
+            if gh label create "$name" --color "$color" --description "$desc"; then
+              echo "✅ Created label '$name'"
+            else
+              echo "❌ Failed to create/update label '$name'"; exit 1
+            fi
+          fi
+        done
