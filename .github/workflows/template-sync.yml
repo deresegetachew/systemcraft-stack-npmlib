@@ -75,7 +75,6 @@ jobs:
           purpose: 'GPG-signed template sync commits'
           git-user-name: ${{ vars.CI_GPG_USER_NAME }}
           git-user-email: ${{ vars.CI_GPG_USER_EMAIL }}
-          enable-gpg-signing: 'true'
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
