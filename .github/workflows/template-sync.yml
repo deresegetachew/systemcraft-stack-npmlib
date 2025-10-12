@@ -27,7 +27,7 @@ env:
   TARGET_BRANCH:         ${{ vars.TARGET_BRANCH         || 'main' }}
   SYNC_BRANCH:           ${{ vars.SYNC_BRANCH           || 'chore/sync-template' }}
   # Optional label
-  TEMPLATE_SYNC_LABEL:   ${{ vars.TEMPLATE_SYNC_LABEL   || 'template-sync' }}
+  TEMPLATE_SYNC_LABEL:   ${{ vars.TEMPLATE_SYNC_LABEL   || ['template-sync', 'skip-changeset-check'] }}
 
 jobs:
   sync:
@@ -99,7 +99,7 @@ jobs:
       - name: Open/Update PR
         uses: peter-evans/create-pull-request@v7
         with:
-          title: "chore: sync from template (excluding: ${TEMPLATE_EXCLUDE})"
+          title: "chore: sync from template (excluding: ${env.TEMPLATE_EXCLUDE})"
           body: |
             Automated sync from **${{ env.TEMPLATE_REPO }}** @ `${{ env.TEMPLATE_REF }}`
 
