@@ -26,10 +26,65 @@ jobs:
             ]
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # Add other preparation tasks here in the future
-  # setup-environment:
-  #   name: Setup environment
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Setup something
-  #       run: echo "Future preparation tasks go here"
+  validate-configuration:
+    name: Validate repository configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required variables and secrets
+        run: |
+          echo "🔍 Checking repository configuration..."
+          
+          # Check required variables
+          MISSING_VARS=""
+          if [[ -z "${{ vars.CI_GPG_USER_NAME }}" ]]; then
+            MISSING_VARS="${MISSING_VARS}CI_GPG_USER_NAME "
+          fi
+          if [[ -z "${{ vars.CI_GPG_USER_EMAIL }}" ]]; then
+            MISSING_VARS="${MISSING_VARS}CI_GPG_USER_EMAIL "
+          fi
+          
+          # Check required secrets
+          MISSING_SECRETS=""
+          if [[ -z "${{ secrets.GPG_PRIVATE_KEY }}" ]]; then
+            MISSING_SECRETS="${MISSING_SECRETS}GPG_PRIVATE_KEY "
+          fi
+          if [[ -z "${{ secrets.GPG_PASSPHRASE }}" ]]; then
+            MISSING_SECRETS="${MISSING_SECRETS}GPG_PASSPHRASE "
+          fi
+          if [[ -z "${{ secrets.BOT_TOKEN }}" ]]; then
+            MISSING_SECRETS="${MISSING_SECRETS}BOT_TOKEN "
+          fi
+          if [[ -z "${{ secrets.NPM_TOKEN }}" ]]; then
+            MISSING_SECRETS="${MISSING_SECRETS}NPM_TOKEN "
+          fi
+          
+          # Report results
+          if [[ -n "$MISSING_VARS" ]] || [[ -n "$MISSING_SECRETS" ]]; then
+            echo "❌ Missing required configuration!"
+            echo ""
+            if [[ -n "$MISSING_VARS" ]]; then
+              echo "📝 Missing Repository Variables (Settings → Secrets and variables → Actions → Variables):"
+              for var in $MISSING_VARS; do
+                echo "   - $var"
+              done
+              echo ""
+            fi
+            if [[ -n "$MISSING_SECRETS" ]]; then
+              echo "🔒 Missing Repository Secrets (Settings → Secrets and variables → Actions → Secrets):"
+              for secret in $MISSING_SECRETS; do
+                echo "   - $secret"
+              done
+              echo ""
+            fi
+            echo "🔗 Configure at: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo ""
+            exit 1
+          fi
+          
+          echo "✅ All required variables and secrets are configured!"
+          echo "   ✓ CI_GPG_USER_NAME"
+          echo "   ✓ CI_GPG_USER_EMAIL" 
+          echo "   ✓ GPG_PRIVATE_KEY"
+          echo "   ✓ GPG_PASSPHRASE"
+          echo "   ✓ BOT_TOKEN"
+          echo "   ✓ NPM_TOKEN"
