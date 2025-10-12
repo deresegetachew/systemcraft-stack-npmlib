@@ -1,5 +1,5 @@
 name: 'Setup CI Git Identity'
-description: 'Configure git identity for CI commits with validation and optional GPG signing'
+description: 'Configure git identity and GPG signing for CI commits'
 branding:
   icon: 'user'
   color: 'blue'
@@ -15,16 +15,12 @@ inputs:
   git-user-email:
     description: 'Git user email for commits'
     required: true
-  enable-gpg-signing:
-    description: 'Enable GPG signing for commits and tags'
-    required: false
-    default: 'false'
   gpg-private-key:
-    description: 'GPG private key for signing (required if enable-gpg-signing is true)'
-    required: false
+    description: 'GPG private key for signing'
+    required: true
   gpg-passphrase:
-    description: 'GPG key passphrase (required if enable-gpg-signing is true)'
-    required: false
+    description: 'GPG key passphrase'
+    required: true
 
 outputs:
   gpg-fingerprint:
@@ -42,30 +38,16 @@ runs:
           echo "❌ ERROR: Git identity not provided for ${{ inputs.purpose }}!"
           echo ""
           echo "📝 Required: Pass git identity as inputs:"
-          echo "   - git-user-name: \${{ vars.CI_GPG_USER_NAME }}"
-          echo "   - git-user-email: \${{ vars.CI_GPG_USER_EMAIL }}"
+          echo "   - git-user-name: 'Your Name'"
+          echo "   - git-user-email: 'your@email.com'"
           echo ""
           echo "🔧 Configure repository variables at: Settings → Secrets and variables → Actions → Variables"
           echo ""
           exit 1
         fi
-        
-        # Validate GPG configuration if signing is enabled
-        if [[ "${{ inputs.enable-gpg-signing }}" == "true" ]]; then
-          if [[ -z "${{ inputs.gpg-private-key }}" ]] || [[ -z "${{ inputs.gpg-passphrase }}" ]]; then
-            echo "❌ ERROR: GPG signing enabled but GPG secrets not provided!"
-            echo ""
-            echo "📝 Required: Pass GPG secrets as inputs:"
-            echo "   - gpg-private-key: \${{ secrets.GPG_PRIVATE_KEY }}"
-            echo "   - gpg-passphrase: \${{ secrets.GPG_PASSPHRASE }}"
-            echo ""
-            exit 1
-          fi
-        fi
 
     - name: Import GPG key
       id: gpg-import
-      if: ${{ inputs.enable-gpg-signing == 'true' }}
       uses: crazy-max/ghaction-import-gpg@v6
       with:
         gpg_private_key: ${{ inputs.gpg-private-key }}
@@ -85,20 +67,18 @@ runs:
         git config --global user.name "$GIT_USER_NAME"
         git config --global user.email "$GIT_USER_EMAIL"
         
-        # Configure GPG signing if enabled
-        if [[ "${{ inputs.enable-gpg-signing }}" == "true" ]]; then
-          GPG_FINGERPRINT="${{ steps.gpg-import.outputs.fingerprint }}"
-          echo "🔐 Configuring GPG signing with fingerprint: $GPG_FINGERPRINT"
-          
-          git config --global commit.gpgsign true
-          git config --global tag.gpgSign true
-          git config --global gpg.program gpg
-          git config --global user.signingkey "$GPG_FINGERPRINT"
-          git config --global user.useConfigOnly true
-          
-          # Set environment variables for commit author/committer
-          echo "GIT_AUTHOR_NAME=$GIT_USER_NAME" >> $GITHUB_ENV
-          echo "GIT_AUTHOR_EMAIL=$GIT_USER_EMAIL" >> $GITHUB_ENV
-          echo "GIT_COMMITTER_NAME=$GIT_USER_NAME" >> $GITHUB_ENV
-          echo "GIT_COMMITTER_EMAIL=$GIT_USER_EMAIL" >> $GITHUB_ENV
-        fi
+        # Configure GPG signing (always required)
+        GPG_FINGERPRINT="${{ steps.gpg-import.outputs.fingerprint }}"
+        echo "🔐 Configuring GPG signing with fingerprint: $GPG_FINGERPRINT"
+        
+        git config --global commit.gpgsign true
+        git config --global tag.gpgSign true
+        git config --global gpg.program gpg
+        git config --global user.signingkey "$GPG_FINGERPRINT"
+        git config --global user.useConfigOnly true
+        
+        # Set environment variables for commit author/committer
+        echo "GIT_AUTHOR_NAME=$GIT_USER_NAME" >> $GITHUB_ENV
+        echo "GIT_AUTHOR_EMAIL=$GIT_USER_EMAIL" >> $GITHUB_ENV
+        echo "GIT_COMMITTER_NAME=$GIT_USER_NAME" >> $GITHUB_ENV
+        echo "GIT_COMMITTER_EMAIL=$GIT_USER_EMAIL" >> $GITHUB_ENV

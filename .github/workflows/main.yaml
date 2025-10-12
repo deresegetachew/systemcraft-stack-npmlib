@@ -10,8 +10,19 @@ on:
     branches: [ main ]
 
 jobs:
+  # Check if we should run (centralized condition)
+  check-should-run:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Check condition
+        run: echo "Should run jobs:${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}"
+
   build:
     name: build
+    needs: check-should-run
+    if: ${{ needs.check-should-run.outputs.should-run == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -31,6 +42,8 @@ jobs:
       - uses: ./.github/actions/build-lint-test
 
   codeql:
+    needs: check-should-run
+    if: ${{ needs.check-should-run.outputs.should-run == 'true' }}
     uses: ./.github/workflows/codeql.yml
     permissions:
       # This permissions are required by codeql workflow
@@ -41,9 +54,9 @@ jobs:
       languages: 'javascript' # comma separated values code
 
   publish:
-    needs: build
+    needs: [check-should-run, build]
     name: publish
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-should-run.outputs.should-run == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -69,7 +82,6 @@ jobs:
           purpose: 'GPG-signed release commits'
           git-user-name: ${{ vars.CI_GPG_USER_NAME }}
           git-user-email: ${{ vars.CI_GPG_USER_EMAIL }}
-          enable-gpg-signing: 'true'
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
