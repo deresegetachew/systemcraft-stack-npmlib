@@ -70,6 +70,13 @@ jobs:
           flags="$flags --exclude=.git"
           echo "flags=$flags" >> "$GITHUB_OUTPUT"
 
+      - uses: ./.github/actions/setup-ci-git-identity
+        with:
+          purpose: 'GPG-signed Template sync commits'
+          enable-gpg-signing: 'true'
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
       - name: Copy template content (exclude configured paths)
         run: |
           set -euo pipefail
