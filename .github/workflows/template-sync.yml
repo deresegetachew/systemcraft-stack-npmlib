@@ -16,7 +16,7 @@ concurrency:
 # Repo-level ENV defaults; override in the GENERATED repo via Actions → Variables
 env:
   # The official template repo — hardcoded, since this is the source of truth
-  TEMPLATE_REPO:         deresegetachew/systemcraft-play-npmlib
+  TEMPLATE_REPO:         deresegetachew/systemcraft-stack-npmlib
   TEMPLATE_REF:          main
   # Turn the sync on/off in generated repos:
   TEMPLATE_SYNC_ENABLED: ${{ vars.TEMPLATE_SYNC_ENABLED || 'true' }}
@@ -43,7 +43,7 @@ jobs:
           echo "Template sync disabled (TEMPLATE_SYNC_ENABLED != 'true'). Exiting."
           exit 0
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: ${{ env.TARGET_BRANCH }}
@@ -87,7 +87,7 @@ jobs:
           git push -u origin "$SYNC_BRANCH" --force-with-lease
 
       - name: Open/Update PR
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           title: "chore: sync from template (excluding: ${TEMPLATE_EXCLUDE})"
           body: |

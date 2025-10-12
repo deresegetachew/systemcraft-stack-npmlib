@@ -1,0 +1,35 @@
+name: Prepare
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  ensure-labels:
+    name: Ensure required labels exist
+    runs-on: ubuntu-latest
+    permissions:
+          contents: write
+          issues: write
+    steps:
+      - uses: actions/checkout@v5
+      
+      - uses: ./.github/actions/ensure-label
+        with:
+          labels_json: |
+            [
+              {"name":"[template-sync]","color":"b9e3ff","description":"Changes from the template repo"},
+              {"name": "[skip changeset check]", "color": "ff4d4f", "description": "Skip the changeset validation check"}
+            ]
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Add other preparation tasks here in the future
+  # setup-environment:
+  #   name: Setup environment
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Setup something
+  #       run: echo "Future preparation tasks go here"

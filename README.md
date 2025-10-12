@@ -1,8 +1,8 @@
-# systemcraft/systemcraft-play-npmlib
+# systemcraft/systemcraft-stack-npmlib
 
-[![CI/CD](https://github.com/deresegetachew/systemcraft-play-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/systemcraft-play-npmlib/actions/workflows/main.yaml)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/deresegetachew/systemcraft-play-npmlib/codeql.yml?label=CodeQL&logo=github)](https://github.com/deresegetachew/systemcraft-play-npmlib/actions/workflows/codeql.yml)
-[![GitHub release](https://img.shields.io/github/release/deresegetachew/systemcraft-play-npmlib.svg)](https://github.com/deresegetachew/systemcraft-play-npmlib/releases)
+[![CI/CD](https://github.com/deresegetachew/systemcraft-stack-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/systemcraft-stack-npmlib/actions/workflows/main.yaml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/deresegetachew/systemcraft-stack-npmlib/codeql.yml?label=CodeQL&logo=github)](https://github.com/deresegetachew/systemcraft-stack-npmlib/actions/workflows/codeql.yml)
+[![GitHub release](https://img.shields.io/github/release/deresegetachew/systemcraft-stack-npmlib.svg)](https://github.com/deresegetachew/systemcraft-stack-npmlib/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
@@ -26,7 +26,7 @@ This monorepo contains the following packages:
 
 ```bash
 # Clone the repository
-git clone https://github.com/deresegetachew/systemcraft-play-npmlib
+git clone https://github.com/deresegetachew/systemcraft-stack-npmlib
 cd systemcraft
 
 # Install dependencies
@@ -74,7 +74,12 @@ This project uses [Changesets](https://github.com/changesets/changesets) for ver
 
 ### Changeset Requirements
 
-All pull requests that modify code must include a changeset file. This is enforced by our CI workflow. If your PR doesn't need a changeset (e.g., documentation updates, CI changes), you can skip this requirement by adding `[skip changeset check]` to your PR title or description.
+All pull requests that modify code must include a changeset file. This is enforced by our CI workflow. If your PR doesn't need a changeset (e.g., documentation updates, CI changes), you can skip this requirement by:
+
+- Adding `[skip changeset check]` to your PR title or description, **OR**
+- Applying the `[skip changeset check]` label to your PR
+
+**Note**: Both the label name and skip text use square brackets `[...]` for consistency.
 
 ## 🧩 Using as a Template
 
@@ -103,7 +108,50 @@ This repository is configured as a GitHub Template, making it easy to create new
    - **package.json**: Update name, description, author, and repository URLs
    - **packages/*/package.json**: Update package names and scopes
 
-### 🔐 Configure GitHub Secrets
+### � Prepare Workflow & Automatic Labels
+
+This repository uses a **Prepare workflow** (`prepare.yml`) that runs before all other workflows to handle setup tasks. The workflow automatically creates required labels for the repository.
+
+#### Automatically Created Labels
+
+The following labels are automatically created when PRs are opened:
+
+| Label | Color | Description | Usage |
+|-------|--------|-------------|--------|
+| `[template-sync]` | Blue (`b9e3ff`) | Changes from the template repo | Applied to template synchronization PRs |
+| `[skip changeset check]` | Red (`ff4d4f`) | Skip the changeset validation check | Apply to PRs that don't need changesets |
+
+#### Workflow Architecture
+
+1. **Prepare Workflow** (`prepare.yml`) - Preparation and setup
+   - **Triggers**: PR events (opened, synchronize, reopened), pushes to main, manual dispatch
+   - **Purpose**: Creates required labels, handles preparation tasks
+   - **Permissions**: Content write access for label management
+   - **Extensible**: Ready for future setup needs
+
+2. **Main Workflow** (`main.yml`) - Core CI/CD pipeline
+   - **Triggers**:
+     - After Prepare workflow completes (via `workflow_run`)
+     - Direct push to main branch
+     - PR events (opened, reopened, synchronize, labeled, unlabeled)
+   - **Architecture**:
+     - Runs independently on PR events for immediate feedback
+     - Also runs after Prepare workflow completion for guaranteed setup
+     - Handles both preparation-dependent and direct trigger scenarios
+   - **Jobs**: Build, test, changeset validation, publishing
+
+#### Why This Architecture?
+
+- **Immediate Feedback**: Main workflow runs directly on PR events for fast CI feedback
+- **Guaranteed Setup**: Also runs after Prepare workflow to ensure labels exist
+- **Label Responsiveness**: Re-runs immediately when labels are added/removed
+- **Flexible Triggering**: Works both independently and as a dependent workflow
+- **No Race Conditions**: Multiple trigger paths ensure robust execution
+
+**Why square brackets `[...]`?**  
+We use square brackets in label names for visual distinction and to prevent accidental matches with regular text in PR titles/descriptions.
+
+### �🔐 Configure GitHub Secrets
 
 Navigate to **Settings → Secrets and variables → Actions** and add:
 
@@ -135,7 +183,7 @@ Navigate to **Settings → Secrets and variables → Actions → Variables** and
 The workflow automatically:
 
 1. **Runs weekly** (Mondays at 07:00 UTC) or can be triggered manually
-2. **Fetches the latest template** from `deresegetachew/systemcraft-play-npmlib@main`
+2. **Fetches the latest template** from `deresegetachew/systemcraft-stack-npmlib@main`
 3. **Syncs files** while excluding configured paths (packages, changesets, licenses, etc.)
 4. **Creates/updates a PR** with the changes
 

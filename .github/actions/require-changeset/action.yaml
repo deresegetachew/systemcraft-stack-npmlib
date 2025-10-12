@@ -1,12 +1,16 @@
 name: Require Changeset
 description: "Fail PRs to main without a changeset (skip for release PRs)"
+inputs:
+  skip-label:
+    description: "Label text to skip changeset check (can appear in PR title, body, or labels)"
+    required: false
+    default: "[skip changeset check]"
 runs:
   using: composite
   steps:
     - name: Check for changeset in PR
       shell: bash
       env:
-        SKIP_LABEL: "[skip changeset check]"
         PR_TITLE: ${{ github.event.pull_request.title || '' }}
         PR_BODY: ${{ github.event.pull_request.body  || '' }}
         ACTOR: ${{ github.actor }}
@@ -41,9 +45,17 @@ runs:
 
         # TODO: skip dependbot here
 
-        # Skip guard for PRs with skip changeset check label
-        if [[ "$PR_TITLE" == *"$SKIP_LABEL"* ]] || [[ "$PR_BODY" == *"$SKIP_LABEL"* ]]; then
-          echo "ℹ️ Skip label detected in PR title or body, skipping changeset check."
+        # Skip guard for PRs with skip changeset check label (title, body, or labels)
+        SKIP_LABEL="${{ inputs.skip-label }}"
+        LABEL_FOUND=false
+        
+        # Check if the skip label exists in PR labels using GitHub context
+        if [[ "${{ contains(github.event.pull_request.labels.*.name, inputs.skip-label) }}" == "true" ]]; then
+          LABEL_FOUND=true
+        fi
+        
+        if [[ "$PR_TITLE" == *"$SKIP_LABEL"* ]] || [[ "$PR_BODY" == *"$SKIP_LABEL"* ]] || [[ "$LABEL_FOUND" == "true" ]]; then
+          echo "ℹ️ Skip label detected in PR title, body or labels, skipping changeset check."
           exit 0
         fi
 
