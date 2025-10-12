@@ -21,8 +21,8 @@ env:
   # Turn the sync on/off in generated repos:
   TEMPLATE_SYNC_ENABLED: ${{ vars.TEMPLATE_SYNC_ENABLED || 'true' }}
   # Exclusions — space-separated paths/patterns relative to template root.
-  # By default we DO NOT sync: packages, .changeset/.changesets, LICENSE/Licenses, node_modules.
-  TEMPLATE_EXCLUDE:      ${{ vars.TEMPLATE_EXCLUDE      || 'packages .changeset .changesets LICENSE LICENSES node_modules' }}
+  # By default we DO NOT sync: packages, .changeset/.changesets, LICENSE/Licenses, node_modules, .gitattributes.
+  TEMPLATE_EXCLUDE:      ${{ vars.TEMPLATE_EXCLUDE      || 'packages .changeset .changesets LICENSE LICENSES node_modules .gitattributes' }}
   # Branch naming
   TARGET_BRANCH:         ${{ vars.TARGET_BRANCH         || 'main' }}
   SYNC_BRANCH:           ${{ vars.SYNC_BRANCH           || 'chore/sync-template' }}
@@ -83,16 +83,18 @@ jobs:
           set -euo pipefail
           rsync -a --delete ${{ steps.excludes.outputs.flags }} /tmp/template/ ./
 
-          # Stage changes if any
-          git checkout -B "$SYNC_BRANCH"
+          # Stage changes if any; leave them staged for create-pull-request to commit
           git add -A
           if git diff --staged --quiet; then
-            echo "No changes after sync."
+            echo "✅ Everything is already up to date with the template!"
+            echo "ℹ️ No changes detected, so no PR was created."
+            echo "If you expected changes, ensure the template repo and ref are correct:"
+            echo "  - Template: $TEMPLATE_REPO"
+            echo "  - Branch:   $TEMPLATE_REF"
+            echo ""
+            echo "To force a sync, you can trigger this workflow manually from the Actions tab."
             exit 0
           fi
-
-          git commit -m "chore: sync from ${TEMPLATE_REPO}@${TEMPLATE_REF} (excluding: ${TEMPLATE_EXCLUDE})"
-          git push -u origin "$SYNC_BRANCH" --force-with-lease
 
       - name: Open/Update PR
         uses: peter-evans/create-pull-request@v7
@@ -108,3 +110,7 @@ jobs:
           base: ${{ env.TARGET_BRANCH }}
           labels: ${{ env.TEMPLATE_SYNC_LABEL }}
           delete-branch: false
+          commit-message: "chore: sync from ${{ env.TEMPLATE_REPO }}@${{ env.TEMPLATE_REF }} (excluding: ${{ env.TEMPLATE_EXCLUDE }})"
+          sign-commits: true
+          committer: "${{ vars.CI_GPG_USER_NAME }} <${{ vars.CI_GPG_USER_EMAIL }}>"
+          author: "${{ vars.CI_GPG_USER_NAME }} <${{ vars.CI_GPG_USER_EMAIL }}>"
