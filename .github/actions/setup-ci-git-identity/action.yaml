@@ -9,6 +9,12 @@ inputs:
     description: 'Purpose of the git identity (e.g., "release commits", "template sync")'
     required: false
     default: 'CI commits'
+  git-user-name:
+    description: 'Git user name for commits'
+    required: true
+  git-user-email:
+    description: 'Git user email for commits'
+    required: true
   enable-gpg-signing:
     description: 'Enable GPG signing for commits and tags'
     required: false
@@ -31,15 +37,15 @@ runs:
     - name: Validate git identity configuration
       shell: bash
       run: |
-        # Require explicit git identity configuration for CI commits
-        if [[ -z "${{ vars.CI_GPG_USER_NAME }}" ]] || [[ -z "${{ vars.CI_GPG_USER_EMAIL }}" ]]; then
-          echo "❌ ERROR: Git identity not configured for ${{ inputs.purpose }}!"
+        # Validate git identity inputs
+        if [[ -z "${{ inputs.git-user-name }}" ]] || [[ -z "${{ inputs.git-user-email }}" ]]; then
+          echo "❌ ERROR: Git identity not provided for ${{ inputs.purpose }}!"
           echo ""
-          echo "📝 Required: Set these repository variables:"
-          echo "   - CI_GPG_USER_NAME: Your full name"
-          echo "   - CI_GPG_USER_EMAIL: Your email"
+          echo "📝 Required: Pass git identity as inputs:"
+          echo "   - git-user-name: \${{ vars.CI_GPG_USER_NAME }}"
+          echo "   - git-user-email: \${{ vars.CI_GPG_USER_EMAIL }}"
           echo ""
-          echo "🔧 Configure at: Settings → Secrets and variables → Actions → Variables"
+          echo "🔧 Configure repository variables at: Settings → Secrets and variables → Actions → Variables"
           echo ""
           exit 1
         fi
@@ -68,8 +74,8 @@ runs:
     - name: Configure git identity and signing
       shell: bash
       run: |
-        GIT_USER_NAME="${{ vars.CI_GPG_USER_NAME }}"
-        GIT_USER_EMAIL="${{ vars.CI_GPG_USER_EMAIL }}"
+        GIT_USER_NAME="${{ inputs.git-user-name }}"
+        GIT_USER_EMAIL="${{ inputs.git-user-email }}"
         
         echo "🔄 Configuring git identity for ${{ inputs.purpose }}:"
         echo "   Name: $GIT_USER_NAME"
