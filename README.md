@@ -159,7 +159,7 @@ The template includes reusable composite actions for common workflow tasks:
 |---------|---------|--------|--------|
 | `setup-node-pnpm` | Sets up Node.js with pnpm and caching | `node-version` | Used in all workflows for consistent environment setup |
 | `require-changeset` | Validates PRs require changesets unless skipped | `skip-label` | Used in main workflow for changeset enforcement |
-| `setup-ci-git-identity` | Complete git setup with identity validation, GPG key import, and signing configuration | `purpose`, `enable-gpg-signing`, `gpg-private-key`, `gpg-passphrase` (all optional) | Used in main and template-sync workflows for complete git configuration |
+| `setup-ci-git-identity` | Complete git setup with identity validation, GPG key import, and signing configuration | `git-user-name` (required), `git-user-email` (required), `purpose`, `enable-gpg-signing`, `gpg-private-key`, `gpg-passphrase` (optional) | Used in main and template-sync workflows for complete git configuration |
 
 ### 🔐 Configure GitHub Secrets
 
