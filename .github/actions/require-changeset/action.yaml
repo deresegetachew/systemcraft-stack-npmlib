@@ -13,7 +13,6 @@ runs:
       env:
         PR_TITLE: ${{ github.event.pull_request.title || '' }}
         PR_BODY: ${{ github.event.pull_request.body  || '' }}
-        PR_LABELS: "${{ toJson(github.event.pull_request.labels || []) }}"
         ACTOR: ${{ github.actor }}
         EVENT_TYPE: ${{ github.event_name }}
         BASE_REF: ${{ github.base_ref || 'main' }}
@@ -47,7 +46,15 @@ runs:
         # TODO: skip dependbot here
 
         # Skip guard for PRs with skip changeset check label (title, body, or labels)
-        if [[ "$PR_TITLE" == *"${{ inputs.skip-label }}"* ]] || [[ "$PR_BODY" == *"${{ inputs.skip-label }}"* ]] || [[ "$PR_LABELS" == *"${{ inputs.skip-label }}"* ]]; then
+        SKIP_LABEL="${{ inputs.skip-label }}"
+        LABEL_FOUND=false
+        
+        # Check if the skip label exists in PR labels using GitHub context
+        if [[ "${{ contains(github.event.pull_request.labels.*.name, inputs.skip-label) }}" == "true" ]]; then
+          LABEL_FOUND=true
+        fi
+        
+        if [[ "$PR_TITLE" == *"$SKIP_LABEL"* ]] || [[ "$PR_BODY" == *"$SKIP_LABEL"* ]] || [[ "$LABEL_FOUND" == "true" ]]; then
           echo "ℹ️ Skip label detected in PR title, body or labels, skipping changeset check."
           exit 0
         fi
