@@ -3,6 +3,10 @@ on:
   workflow_run:
     workflows: ["Prepare"]
     types: [completed]
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
     branches: [ main ]
 
 jobs:

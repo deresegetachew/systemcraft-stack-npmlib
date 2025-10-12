@@ -123,15 +123,30 @@ The following labels are automatically created when PRs are opened:
 
 #### Workflow Architecture
 
-1. **Prepare Workflow** runs first on PR events and pushes to main
-   - Creates required labels
-   - Handles other preparation tasks
-   - Extensible for future setup needs
+1. **Prepare Workflow** (`prepare.yml`) - Preparation and setup
+   - **Triggers**: PR events (opened, synchronize, reopened), pushes to main, manual dispatch
+   - **Purpose**: Creates required labels, handles preparation tasks
+   - **Permissions**: Content write access for label management
+   - **Extensible**: Ready for future setup needs
 
-2. **Main Workflow** runs after Prepare completes successfully
-   - Guaranteed that labels exist
-   - Clean separation of concerns
-   - No duplicate setup code
+2. **Main Workflow** (`main.yml`) - Core CI/CD pipeline
+   - **Triggers**:
+     - After Prepare workflow completes (via `workflow_run`)
+     - Direct push to main branch
+     - PR events (opened, reopened, synchronize, labeled, unlabeled)
+   - **Architecture**:
+     - Runs independently on PR events for immediate feedback
+     - Also runs after Prepare workflow completion for guaranteed setup
+     - Handles both preparation-dependent and direct trigger scenarios
+   - **Jobs**: Build, test, changeset validation, publishing
+
+#### Why This Architecture?
+
+- **Immediate Feedback**: Main workflow runs directly on PR events for fast CI feedback
+- **Guaranteed Setup**: Also runs after Prepare workflow to ensure labels exist
+- **Label Responsiveness**: Re-runs immediately when labels are added/removed
+- **Flexible Triggering**: Works both independently and as a dependent workflow
+- **No Race Conditions**: Multiple trigger paths ensure robust execution
 
 **Why square brackets `[...]`?**  
 We use square brackets in label names for visual distinction and to prevent accidental matches with regular text in PR titles/descriptions.
