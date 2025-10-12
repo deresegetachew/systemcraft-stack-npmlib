@@ -54,7 +54,7 @@ jobs:
       languages: 'javascript' # comma separated values code
 
   publish:
-    needs: [check-should-run, test]
+    needs: [check-should-run, build]
     name: publish
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-should-run.outputs.should-run == 'true' }}
     runs-on: ubuntu-latest
