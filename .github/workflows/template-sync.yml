@@ -114,3 +114,4 @@ jobs:
           sign-commits: true
           committer: "${{ vars.CI_GPG_USER_NAME }} <${{ vars.CI_GPG_USER_EMAIL }}>"
           author: "${{ vars.CI_GPG_USER_NAME }} <${{ vars.CI_GPG_USER_EMAIL }}>"
+          token: ${{ secrets.BOT_TOKEN }}
