@@ -26,8 +26,8 @@ env:
   # Branch naming
   TARGET_BRANCH:         ${{ vars.TARGET_BRANCH         || 'main' }}
   SYNC_BRANCH:           ${{ vars.SYNC_BRANCH           || 'chore/sync-template' }}
-  # Optional label
-  TEMPLATE_SYNC_LABEL:   ${{ vars.TEMPLATE_SYNC_LABEL   || ['template-sync', 'skip-changeset-check'] }}
+  # Optional label(s) — when set via repo Variables this can be a comma-separated string
+  TEMPLATE_SYNC_LABEL:   ${{ vars.TEMPLATE_SYNC_LABEL   || 'template-sync,skip-changeset-check' }}
 
 jobs:
   sync:
