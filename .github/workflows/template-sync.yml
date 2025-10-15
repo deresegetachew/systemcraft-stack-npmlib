@@ -27,13 +27,13 @@ env:
   TARGET_BRANCH:         ${{ vars.TARGET_BRANCH         || 'main' }}
   SYNC_BRANCH:           ${{ vars.SYNC_BRANCH           || 'chore/sync-template' }}
   # Optional label(s) — when set via repo Variables this can be a comma-separated string
-  TEMPLATE_SYNC_LABEL:   ${{ vars.TEMPLATE_SYNC_LABEL   || 'template-sync,skip-changeset-check' }}
+  TEMPLATE_SYNC_LABEL:   ${{ vars.TEMPLATE_SYNC_LABEL   || 'template-sync,[skip-changeset-check]' }}
 
 jobs:
   sync:
     name: Sync from template systemcraft/play-npmlib (exclude packages, licenses, changesets)
     # IMPORTANT: do NOT run on the template repo itself
-    if: ${{ github.repository != 'deresegetachew/systemcraft-stack-npmlib' }}
+    if: ${{ github.repository != env.TEMPLATE_REPO }}
     runs-on: ubuntu-latest
 
     steps:
@@ -99,7 +99,7 @@ jobs:
       - name: Open/Update PR
         uses: peter-evans/create-pull-request@v7
         with:
-          title: "chore: sync from template (excluding: ${env.TEMPLATE_EXCLUDE})"
+          title: "chore: sync from template (excluding: ${{ env.TEMPLATE_EXCLUDE }})"
           body: |
             Automated sync from **${{ env.TEMPLATE_REPO }}** @ `${{ env.TEMPLATE_REF }}`
 
