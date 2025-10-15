@@ -22,7 +22,7 @@ env:
   TEMPLATE_SYNC_ENABLED: ${{ vars.TEMPLATE_SYNC_ENABLED || 'true' }}
   # Exclusions — space-separated paths/patterns relative to template root.
   # By default we DO NOT sync: packages, .changeset/.changesets, LICENSE/Licenses, node_modules, .gitattributes.
-  TEMPLATE_EXCLUDE:      ${{ vars.TEMPLATE_EXCLUDE      || 'packages .changeset .changesets LICENSE LICENSES node_modules .gitattributes README.md' }}
+  TEMPLATE_EXCLUDE:      ${{ vars.TEMPLATE_EXCLUDE      || 'packages pnpm-lock.yml .changeset .changesets LICENSE LICENSES node_modules .gitattributes README.md' }}
   # Branch naming
   TARGET_BRANCH:         ${{ vars.TARGET_BRANCH         || 'main' }}
   SYNC_BRANCH:           ${{ vars.SYNC_BRANCH           || 'chore/sync-template' }}
