@@ -22,12 +22,12 @@ env:
   TEMPLATE_SYNC_ENABLED: ${{ vars.TEMPLATE_SYNC_ENABLED || 'true' }}
   # Exclusions — space-separated paths/patterns relative to template root.
   # By default we DO NOT sync: packages, .changeset/.changesets, LICENSE/Licenses, node_modules, .gitattributes.
-  TEMPLATE_EXCLUDE:      ${{ vars.TEMPLATE_EXCLUDE      || 'packages .changeset .changesets LICENSE LICENSES node_modules .gitattributes' }}
+  TEMPLATE_EXCLUDE:      ${{ vars.TEMPLATE_EXCLUDE      || 'packages pnpm-lock.yml pnpm-lock.yaml .changeset .changesets LICENSE LICENSES node_modules .gitattributes README.md' }}
   # Branch naming
   TARGET_BRANCH:         ${{ vars.TARGET_BRANCH         || 'main' }}
   SYNC_BRANCH:           ${{ vars.SYNC_BRANCH           || 'chore/sync-template' }}
-  # Optional label
-  TEMPLATE_SYNC_LABEL:   ${{ vars.TEMPLATE_SYNC_LABEL   || 'template-sync' }}
+  # Optional label(s) — when set via repo Variables this can be a comma-separated string
+  TEMPLATE_SYNC_LABEL:   ${{ vars.TEMPLATE_SYNC_LABEL   || 'template-sync,[skip changeset check]' }}
 
 jobs:
   sync:
@@ -99,7 +99,7 @@ jobs:
       - name: Open/Update PR
         uses: peter-evans/create-pull-request@v7
         with:
-          title: "chore: sync from template (excluding: ${TEMPLATE_EXCLUDE})"
+          title: "chore: sync from template ${{ env.TEMPLATE_REPO }}"
           body: |
             Automated sync from **${{ env.TEMPLATE_REPO }}** @ `${{ env.TEMPLATE_REF }}`
 
@@ -114,3 +114,4 @@ jobs:
           sign-commits: true
           committer: "${{ vars.CI_GPG_USER_NAME }} <${{ vars.CI_GPG_USER_EMAIL }}>"
           author: "${{ vars.CI_GPG_USER_NAME }} <${{ vars.CI_GPG_USER_EMAIL }}>"
+          token: ${{ secrets.BOT_TOKEN }}

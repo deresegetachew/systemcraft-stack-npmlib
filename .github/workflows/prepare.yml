@@ -88,3 +88,5 @@ jobs:
           echo "   ✓ GPG_PASSPHRASE"
           echo "   ✓ BOT_TOKEN"
           echo "   ✓ NPM_TOKEN"
+
+          echo "Prepare job completed successfully."
