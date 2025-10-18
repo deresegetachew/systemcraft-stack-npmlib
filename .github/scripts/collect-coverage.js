@@ -80,16 +80,85 @@ async function exists(p) {
     }
 }
 
-async function main() {
+async function getBaselineCoverage(baseBranch, packagesRoot, coverageFileName) {
+    const { execSync } = await import("node:child_process");
+    const baseline = new Map();
+
+    try {
+        // Check if we're in a git repository and the base branch exists
+        execSync(`git rev-parse --verify ${baseBranch}`, { stdio: "pipe" });
+
+        // Get the list of coverage files that exist in the base branch
+        const gitOutput = execSync(
+            `git ls-tree -r --name-only ${baseBranch} -- "${packagesRoot}"`,
+            { encoding: "utf8", stdio: "pipe" }
+        );
+
+        const baselineCoverageFiles = gitOutput
+            .split("\n")
+            .filter(line => line.trim() && line.includes("/coverage/") && line.endsWith(coverageFileName));
+
+        for (const filePath of baselineCoverageFiles) {
+            try {
+                // Get file content from base branch
+                const content = execSync(`git show ${baseBranch}:${filePath}`, {
+                    encoding: "utf8",
+                    stdio: "pipe"
+                });
+
+                const summary = JSON.parse(content);
+                const totals = extractTotals(summary);
+
+                // Extract package info from path
+                const pathParts = filePath.split("/");
+                const pkgIndex = pathParts.findIndex(part => part === "packages");
+                if (pkgIndex >= 0 && pkgIndex < pathParts.length - 2) {
+                    const pkgDir = pathParts[pkgIndex + 1];
+                    baseline.set(pkgDir, totals);
+                }
+            } catch (err) {
+                // Skip files that can't be parsed
+                console.warn(`Warning: Could not parse baseline coverage for ${filePath}:`, err.message);
+            }
+        }
+    } catch (err) {
+        console.warn(`Warning: Could not fetch baseline coverage from ${baseBranch}:`, err.message);
+    }
+
+    return baseline;
+}
+
+function formatDiff(current, baseline, metric = "lines") {
+    const currentPct = current[metric]?.pct || 0;
+
+    // If no baseline, treat current coverage as new (increment)
+    if (!baseline) {
+        return currentPct > 0 ? ` 🟢 +${currentPct.toFixed(1)}%` : "";
+    }
+
+    const baselinePct = baseline[metric]?.pct || 0;
+    const diff = currentPct - baselinePct;
+
+    if (Math.abs(diff) < 0.1) return ""; // No significant change
+
+    const sign = diff > 0 ? "+" : "";
+    const icon = diff > 0 ? "🟢" : "🔴";
+    return ` ${icon} ${sign}${diff.toFixed(1)}%`;
+} async function main() {
     const repoRoot = process.cwd();
     const packagesRoot = path.join(repoRoot, "packages");
     const outRoot = path.join(repoRoot, process.env.OUT_DIR || "coverage-artifacts");
     const coverageFileName = process.env.COVERAGE_FILE_NAME || "coverage-summary.json";
+    const baseBranch = "main"; // Future make this configurable from env -> repor variable
+    const enableDiff = true;
 
     await ensureDir(outRoot);
 
     const rows = []; // for summary
     let count = 0;
+
+    // Get baseline coverage for diff comparison if enabled
+    const baselineCoverage = enableDiff ? await getBaselineCoverage(baseBranch, packagesRoot, coverageFileName) : new Map();
 
     // find every coverage.json
     try {
@@ -128,11 +197,16 @@ async function main() {
         const summary = JSON.parse(await fs.readFile(f, "utf8"));
         const totals = extractTotals(summary);
 
+        // Get baseline coverage for this package (use folder name as key)
+        const pkgFolderName = path.basename(pkgDir);
+        const baselineTotals = baselineCoverage.get(pkgFolderName);
+
         rows.push({
             package: pkgName,
             safe,
             rel: path.relative(repoRoot, f),
             totals,
+            baseline: baselineTotals,
         });
         count++;
     }
@@ -145,19 +219,27 @@ async function main() {
     );
 
     // Build Markdown summary
-    const header = `# Coverage Summary (${count} package${count === 1 ? "" : "s"})`;
+    let header = `# Coverage Summary (${count} package${count === 1 ? "" : "s"})`;
+    if (enableDiff && baselineCoverage.size > 0) {
+        header += `\n\n*Showing changes compared to \`${baseBranch}\` branch*`;
+    }
+
     const tableHead = [
         "",
         "| Package | Lines | Statements | Branches | Functions |",
         "|---|---:|---:|---:|---:|",
     ].join("\n");
     const tableRows = rows
-        .map(
-            (r) =>
-                `| \`${r.package}\` | ${toPct(r.totals.lines.pct)} | ${toPct(r.totals.statements.pct)} | ${toPct(
-                    r.totals.branches.pct
-                )} | ${toPct(r.totals.functions.pct)} |`
-        )
+        .map((r) => {
+            const linesDiff = enableDiff ? formatDiff(r.totals, r.baseline, "lines") : "";
+            const statementsDiff = enableDiff ? formatDiff(r.totals, r.baseline, "statements") : "";
+            const branchesDiff = enableDiff ? formatDiff(r.totals, r.baseline, "branches") : "";
+            const functionsDiff = enableDiff ? formatDiff(r.totals, r.baseline, "functions") : "";
+
+            return `| \`${r.package}\` | ${toPct(r.totals.lines.pct)}${linesDiff} | ${toPct(r.totals.statements.pct)}${statementsDiff} | ${toPct(
+                r.totals.branches.pct
+            )}${branchesDiff} | ${toPct(r.totals.functions.pct)}${functionsDiff} |`;
+        })
         .join("\n");
 
     let md = [header, tableHead, tableRows, ""].join("\n");
