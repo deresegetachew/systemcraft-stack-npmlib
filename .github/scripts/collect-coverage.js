@@ -160,13 +160,24 @@ async function main() {
         )
         .join("\n");
 
-    // Optional link to a combined artifact (set by the workflow)
-    const fullReportUrl = process.env.COVERAGE_ARTIFACT_URL;
-
     let md = [header, tableHead, tableRows, ""].join("\n");
-    md += "_Artifacts saved under `coverage-artifacts/<package>/` (summary, lcov, and HTML if available)._";
-    if (fullReportUrl) {
-        md += `\n\n### 🔎 [View full HTML & LCOV report](${fullReportUrl})`;
+    md += `_Artifacts saved under \`${path.relative(repoRoot, outRoot)}/<package>/\` (summary, lcov, and HTML if available)._`;
+
+    // Add links to individual HTML reports if they exist locally
+    const htmlReports = [];
+    for (const r of rows) {
+        const htmlPath = path.join(outRoot, r.safe, "html", "index.html");
+        if (await exists(htmlPath)) {
+            htmlReports.push(r);
+        }
+    }
+
+    if (htmlReports.length > 0) {
+        md += `\n\n### 📊 HTML Coverage Reports\n`;
+        for (const report of htmlReports) {
+            const htmlRelPath = path.join(path.relative(repoRoot, outRoot), report.safe, "html", "index.html");
+            md += `- [\`${report.package}\`](./${htmlRelPath})\n`;
+        }
     }
     md += "\n";
 
