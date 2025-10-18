@@ -20,7 +20,7 @@
     "scripts": {
         "build": "tsup src/index.ts --format cjs,esm --dts --tsconfig tsconfig.json",
         "lint": "tsc -p tsconfig.json",
-        "test": "echo \"\u001b[33mWarning: no test specified\u001b[0m\""
+        "test": "c8 -r lcov -r html tsx --test src/**/*.test.ts"
     },
     "dependencies": {
         "@systemcraft/lib-one": "workspace:^"

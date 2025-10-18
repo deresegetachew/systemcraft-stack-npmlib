@@ -5,6 +5,7 @@
     "moduleResolution": "Node",
     "esModuleInterop": true,
     "strict": true,
+    "types": ["node"],
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true, // use ts as a type checker only
