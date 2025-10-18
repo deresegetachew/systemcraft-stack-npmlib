@@ -242,7 +242,6 @@ function formatDiff(current, baseline, metric = "lines") {
         .join("\n");
 
     let md = [header, "", tableHead, tableRows].join("\n");
-    md += `\n\n_Artifacts saved under \`${path.relative(repoRoot, outRoot)}/<package>/\` (summary, lcov, and HTML if available)._`;
     md += "\n";
 
     await fs.writeFile(path.join(outRoot, "coverage-report.md"), md, "utf8");
