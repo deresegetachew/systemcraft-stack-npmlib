@@ -21,4 +21,32 @@ runs:
 
     - name: Run tests
       shell: bash
-      run: pnpm -r test
+      run: pnpm -r test -- --ci --coverage
+
+    # This script gathers coverage-summary.json per package and also copies
+    # lcov.info + full HTML reports into coverage-artifacts/<pkg>/
+    - name: Collect coverage summaries
+      shell: bash
+      env:
+        OUT_DIR: coverage-artifacts
+        COVERAGE_FILE_NAME: coverage-summary.json
+      run: node .github/scripts/collect-coverage.js
+
+ 
+    # Upload lightweight JSON + Markdown summary
+    - name: Upload coverage artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-artifacts
+        path: coverage-artifacts/**
+
+
+
+    # Sticky comment on PR
+    - name: Post/update sticky coverage comment
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: coverage-report
+        path: coverage-artifacts/coverage-report.md
+      
