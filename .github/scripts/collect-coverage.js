@@ -225,7 +225,6 @@ function formatDiff(current, baseline, metric = "lines") {
     }
 
     const tableHead = [
-        "",
         "| Package | Lines | Statements | Branches | Functions |",
         "|---|---:|---:|---:|---:|",
     ].join("\n");
@@ -242,8 +241,8 @@ function formatDiff(current, baseline, metric = "lines") {
         })
         .join("\n");
 
-    let md = [header, tableHead, tableRows, ""].join("\n");
-    md += `_Artifacts saved under \`${path.relative(repoRoot, outRoot)}/<package>/\` (summary, lcov, and HTML if available)._`;
+    let md = [header, "", tableHead, tableRows].join("\n");
+    md += `\n\n_Artifacts saved under \`${path.relative(repoRoot, outRoot)}/<package>/\` (summary, lcov, and HTML if available)._`;
 
     // Add links to individual HTML reports if they exist locally
     const htmlReports = [];

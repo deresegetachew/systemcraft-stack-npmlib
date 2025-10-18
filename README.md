@@ -129,6 +129,7 @@ The `.github/scripts/collect-coverage.js` script automatically:
 - Copies coverage summaries, LCOV reports, and HTML reports to `coverage-artifacts/`
 - Generates a consolidated Markdown report with coverage percentages for all packages
 - Creates a machine-readable index file for CI/CD integration
+- **Includes coverage diff** when comparing against a baseline branch
 
 The coverage reports are automatically included in pull request comments and GitHub Actions job summaries, providing immediate feedback on test coverage changes.
 
