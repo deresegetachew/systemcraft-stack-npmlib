@@ -243,24 +243,6 @@ function formatDiff(current, baseline, metric = "lines") {
 
     let md = [header, "", tableHead, tableRows].join("\n");
     md += `\n\n_Artifacts saved under \`${path.relative(repoRoot, outRoot)}/<package>/\` (summary, lcov, and HTML if available)._`;
-
-    // Check if HTML reports were generated (for informational purposes)
-    const htmlReports = [];
-    for (const r of rows) {
-        const htmlPath = path.join(outRoot, r.safe, "html", "index.html");
-        if (await exists(htmlPath)) {
-            htmlReports.push(r);
-        }
-    }
-
-    if (htmlReports.length > 0) {
-        md += `\n\n### 📊 HTML Coverage Reports\n`;
-        md += `HTML coverage reports have been generated for ${htmlReports.length} package${htmlReports.length === 1 ? '' : 's'}:\n`;
-        for (const report of htmlReports) {
-            md += `- \`${report.package}\`\n`;
-        }
-        md += `\n*HTML reports are available in the \`${path.relative(repoRoot, outRoot)}\` directory for local viewing.*`;
-    }
     md += "\n";
 
     await fs.writeFile(path.join(outRoot, "coverage-report.md"), md, "utf8");
