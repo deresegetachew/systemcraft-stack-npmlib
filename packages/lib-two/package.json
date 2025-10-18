@@ -20,7 +20,7 @@
     "scripts": {
         "build": "tsup src/index.ts --format cjs,esm --dts --tsconfig tsconfig.json",
         "lint": "tsc -p tsconfig.json",
-        "test": "c8 -r lcov -r html tsx --test src/**/*.test.ts"
+        "test": "c8 -r lcov -r html -r json-summary tsx --test src/**/*.test.ts"
     },
     "dependencies": {
         "@systemcraft/lib-one": "workspace:^"

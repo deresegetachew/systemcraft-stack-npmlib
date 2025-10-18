@@ -106,7 +106,33 @@ systemcraft/
 
 - `pnpm release` - Publish packages using changesets
 
-## 🔄 Release Process
+## � Coverage Reports
+
+This project automatically collects and aggregates test coverage reports from all packages in the monorepo. The coverage collection system expects each package to generate a standard `coverage-summary.json` file in its `coverage/` directory.
+
+### Coverage Requirements
+
+For the automated coverage collection to work properly, each package must:
+
+1. **Generate coverage in the standard location**: `packages/<package-name>/coverage/coverage-summary.json`
+2. **Use NYC/Istanbul format**: The coverage file should follow the standard NYC (Istanbul) coverage summary format with totals for:
+   - Lines
+   - Statements
+   - Branches
+   - Functions
+
+### Coverage Collection Script
+
+The `.github/scripts/collect-coverage.js` script automatically:
+
+- Recursively searches for `coverage/coverage-summary.json` files under `./packages`
+- Copies coverage summaries, LCOV reports, and HTML reports to `coverage-artifacts/`
+- Generates a consolidated Markdown report with coverage percentages for all packages
+- Creates a machine-readable index file for CI/CD integration
+
+The coverage reports are automatically included in pull request comments and GitHub Actions job summaries, providing immediate feedback on test coverage changes.
+
+## �🔄 Release Process
 
 This project uses [Changesets](https://github.com/changesets/changesets) for version management and publishing:
 

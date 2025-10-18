@@ -6,20 +6,20 @@ import path from "node:path";
 import process from "node:process";
 
 /**
- * Recursively find files named coverage/coverage-summary.json under ./packages
+ * Recursively find files named coverage/{coverageFileName} under ./packages
  */
-async function* walk(dir) {
+async function* walk(dir, coverageFileName = "coverage-summary.json") {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const e of entries) {
         const full = path.join(dir, e.name);
         if (e.isDirectory()) {
             // skip node_modules to avoid useless work
             if (e.name === "node_modules") continue;
-            yield* walk(full);
+            yield* walk(full, coverageFileName);
         } else if (
             e.isFile() &&
-            (full.endsWith(path.join("coverage", "coverage-summary.json")) ||
-                (full.endsWith("coverage-summary.json") && full.includes(`${path.sep}coverage${path.sep}`)))
+            (full.endsWith(path.join("coverage", coverageFileName)) ||
+                (full.endsWith(coverageFileName) && full.includes(`${path.sep}coverage${path.sep}`)))
         ) {
             yield full;
         }
@@ -84,13 +84,14 @@ async function main() {
     const repoRoot = process.cwd();
     const packagesRoot = path.join(repoRoot, "packages");
     const outRoot = path.join(repoRoot, process.env.OUT_DIR || "coverage-artifacts");
+    const coverageFileName = process.env.COVERAGE_FILE_NAME || "coverage-summary.json";
 
     await ensureDir(outRoot);
 
     const rows = []; // for summary
     let count = 0;
 
-    // find every coverage-summary.json
+    // find every coverage.json
     try {
         await fs.access(packagesRoot);
     } catch {
@@ -98,8 +99,8 @@ async function main() {
         process.exit(0);
     }
 
-    for await (const f of walk(packagesRoot)) {
-        // f = .../packages/<pkg>/.../coverage/coverage-summary.json
+    for await (const f of walk(packagesRoot, coverageFileName)) {
+        // f = .../packages/<pkg>/.../coverage/{coverageFileName}
         const coverageDir = path.dirname(f);
         const pkgDir = path.dirname(path.dirname(f)); // up twice: coverage -> parent -> (usually package root)
         const pkgName = await getPackageName(pkgDir);
@@ -108,7 +109,7 @@ async function main() {
         await ensureDir(destDir);
 
         // Copy the raw summary
-        await fs.copyFile(f, path.join(destDir, "coverage-summary.json"));
+        await fs.copyFile(f, path.join(destDir, "coverage.json"));
 
         // Also copy LCOV if present
         const lcovPath = path.join(coverageDir, "lcov.info");
@@ -169,7 +170,7 @@ async function main() {
     }
     md += "\n";
 
-    await fs.writeFile(path.join(outRoot, "summary.md"), md, "utf8");
+    await fs.writeFile(path.join(outRoot, "coverage-report.md"), md, "utf8");
 
     // Also surface to the job summary if available
     if (process.env.GITHUB_STEP_SUMMARY) {
@@ -180,7 +181,7 @@ async function main() {
     console.log(`Collected ${count} coverage summaries → ${path.relative(repoRoot, outRoot)}`);
     if (count === 0) {
         console.log(
-            "No coverage summaries found. Ensure your test runner writes coverage/coverage-summary.json per package."
+            `No coverage summaries found. Ensure your test runner writes coverage/${coverageFileName} per package.`
         );
     }
 }

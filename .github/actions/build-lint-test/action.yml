@@ -29,6 +29,7 @@ runs:
       shell: bash
       env:
         OUT_DIR: coverage-artifacts
+        COVERAGE_FILE_NAME: coverage-summary.json
       run: node .github/scripts/collect-coverage.js
 
  
