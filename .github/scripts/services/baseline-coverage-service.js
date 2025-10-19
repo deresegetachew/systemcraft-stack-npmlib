@@ -97,9 +97,16 @@ class BaselineCoverageService {
 
             const listData = await listResponse.json();
 
-            console.debug(
-                `artifacts found:`, { artifacts: JSON.stringify(listData.artifacts) }
-            )
+            if (Array.isArray(listData.artifacts))
+                console.debug(
+                    `artifacts found: ${listData.artifacts.length}`, JSON.stringify({
+                        artifacts: listData.artifacts.map((a) => ({
+                            name: a.name,
+                            expired: a.expired,
+                            workflow_run_conclusion: a?.workflow_run?.conclusion,
+                        }))
+                    })
+                )
 
             const matchingArtifacts = (listData.artifacts ?? [])
                 .filter((artifact) =>
