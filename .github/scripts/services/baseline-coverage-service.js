@@ -98,7 +98,7 @@ class BaselineCoverageService {
             const listData = await listResponse.json();
 
             console.debug(
-                `artifacts found:`, { listData }
+                `artifacts found:`, { artifacts: JSON.stringify(listData.artifacts) }
             )
 
             const matchingArtifacts = (listData.artifacts ?? [])
