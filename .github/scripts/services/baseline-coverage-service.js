@@ -87,7 +87,9 @@ class BaselineCoverageService {
                 Accept: "application/vnd.github+json"
             };
 
-            const listUrl = `https://api.github.com/repos/${owner}/${repoName}/actions/artifacts?per_page=100`;
+            const listUrl = new URL(`https://api.github.com/repos/${owner}/${repoName}/actions/artifacts`);
+            listUrl.searchParams.set("name", this.artifactName);
+            listUrl.searchParams.set("per_page", "100");
             const listResponse = await fetch(listUrl, { headers });
 
             if (!listResponse.ok) {
@@ -96,23 +98,47 @@ class BaselineCoverageService {
             }
 
             const listData = await listResponse.json();
-            const candidates = (listData.artifacts ?? [])
-                .filter(a =>
-                    a.name === this.artifactName &&
-                    !a.expired &&
-                    a.workflow_run &&
-                    a.workflow_run.head_branch === this.baseBranch &&
-                    a.workflow_run.conclusion === "success"
+
+            if (Array.isArray(listData.artifacts)) {
+                console.debug(
+                    `artifact fields,${JSON.stringify(listData.artifacts[0])}`
+                )
+
+                console.debug(
+                    `artifacts found: ${listData.artifacts.length}`, JSON.stringify({
+                        artifacts: listData.artifacts.map((a) => ({
+                            name: a.name,
+                            expired: a.expired,
+                            workflow_run_conclusion: a?.workflow_run?.conclusion,
+                        }))
+                    })
+                )
+            }
+
+
+
+            const matchingArtifacts = (listData.artifacts ?? [])
+                .filter((artifact) =>
+                    !artifact.expired &&
+                    artifact.workflow_run &&
+                    this.#isSuccessfulRun(artifact.workflow_run)
                 )
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-            if (candidates.length === 0) {
-                console.warn(`Warning: No active "${this.artifactName}" artifact found for branch "${this.baseBranch}".`);
+            if (matchingArtifacts.length === 0) {
+                console.warn(`Warning: No active "${this.artifactName}" artifact found.`);
                 return null;
             }
 
-            const artifact = candidates[0];
-            const downloadUrl = `https://api.github.com/repos/${owner}/${repoName}/actions/artifacts/${artifact.id}/download`;
+            const artifact = matchingArtifacts[0];
+            const detectedBranch = artifact.workflow_run?.head_branch ?? "unknown";
+            if (this.baseBranch && detectedBranch !== this.baseBranch) {
+                console.info(
+                    `Info: Using "${this.artifactName}" artifact from branch "${detectedBranch}" (expected "${this.baseBranch}").`
+                );
+            }
+            const downloadUrl = artifact.archive_download_url ??
+                `https://api.github.com/repos/${owner}/${repoName}/actions/artifacts/${artifact.id}/zip`;
             const downloadResponse = await fetch(downloadUrl, { headers, redirect: "follow" });
 
             if (!downloadResponse.ok) {
@@ -164,6 +190,12 @@ class BaselineCoverageService {
             console.warn(`Warning: Could not download baseline artifact: ${err.message}`);
             return null;
         }
+    }
+
+    #isSuccessfulRun(runInfo = {}) {
+        // Some API responses omit conclusion, so treat missing as success unless explicitly failed/cancelled.
+        const conclusion = runInfo.conclusion ?? "success";
+        return !["failure", "cancelled", "timed_out", "action_required", "stale"].includes(conclusion);
     }
 }
 
