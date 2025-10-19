@@ -18,6 +18,12 @@ class CoverageReporter {
         this.diffFormatter = options.diffFormatter ?? new CoverageDiffFormatter(options.diffFormatterOptions);
     }
 
+    #formatDelta(config, row, metric) {
+        if (!config.enableDiff) return "—";
+        const diff = config.diffFormatter.format(row.totals, row.baseline, metric);
+        return diff || "—";
+    }
+
     async generate(rows, overrides = {}) {
         const config = this.#resolveConfig(overrides);
         const markdown = this.#buildMarkdown(rows, config);
@@ -53,20 +59,20 @@ class CoverageReporter {
         }
 
         const tableHead = [
-            "| Package | Lines | Statements | Branches | Functions |",
-            "|---|---:|---:|---:|---:|",
+            "| Package | Lines | Δ Lines | Statements | Δ Statements | Branches | Δ Branches | Functions | Δ Functions |",
+            "|:--|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|",
         ].join("\n");
 
         const tableRows = rows
             .map((row) => {
-                const linesDiff = config.enableDiff ? config.diffFormatter.format(row.totals, row.baseline, "lines") : "";
-                const statementsDiff = config.enableDiff ? config.diffFormatter.format(row.totals, row.baseline, "statements") : "";
-                const branchesDiff = config.enableDiff ? config.diffFormatter.format(row.totals, row.baseline, "branches") : "";
-                const functionsDiff = config.enableDiff ? config.diffFormatter.format(row.totals, row.baseline, "functions") : "";
+                const linesDiff = this.#formatDelta(config, row, "lines");
+                const statementsDiff = this.#formatDelta(config, row, "statements");
+                const branchesDiff = this.#formatDelta(config, row, "branches");
+                const functionsDiff = this.#formatDelta(config, row, "functions");
 
-                return `| \`${row.package}\` | ${toPct(row.totals.lines.pct)}${linesDiff} | ${toPct(row.totals.statements.pct)}${statementsDiff} | ${toPct(
+                return `| **${row.package}** | ${toPct(row.totals.lines.pct)} | ${linesDiff} | ${toPct(row.totals.statements.pct)} | ${statementsDiff} | ${toPct(
                     row.totals.branches.pct
-                )}${branchesDiff} | ${toPct(row.totals.functions.pct)}${functionsDiff} |`;
+                )} | ${branchesDiff} | ${toPct(row.totals.functions.pct)} | ${functionsDiff} |`;
             })
             .join("\n");
 
