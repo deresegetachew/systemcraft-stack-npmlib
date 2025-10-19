@@ -23,18 +23,9 @@ runs:
       shell: bash
       run: pnpm -r test -- --ci --coverage
 
-    # Download previous coverage for diff comparison (PRs only)
-    - name: Download baseline coverage
-      if: ${{ github.event_name == 'pull_request' }}
-      uses: actions/download-artifact@v4
-      with:
-        name: coverage-baseline
-        path: baseline-coverage
-      continue-on-error: true
 
-    # This script gathers coverage-summary.json per package and also copies
-    # lcov.info + full HTML reports into coverage-artifacts/<pkg>/
-    # Also handles diff comparison if baseline is available
+    # Collect coverage summaries, copy LCOV/HTML assets, pull the latest
+    # baseline (via API when needed), and generate the diff-aware report
     - name: Collect coverage summaries
       shell: bash
       env:
@@ -42,6 +33,7 @@ runs:
         COVERAGE_FILE_NAME: coverage-summary.json
         ENABLE_COVERAGE_DIFF: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
         BASELINE_ARTIFACT_PATH: ${{ github.event_name == 'pull_request' && 'baseline-coverage' || '' }}
+        GITHUB_TOKEN: ${{ github.token }}
       run: node .github/scripts/collect-coverage.js
 
     # Upload lightweight JSON + Markdown summary
