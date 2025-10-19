@@ -99,7 +99,7 @@ class BaselineCoverageService {
 
             if (Array.isArray(listData.artifacts)) {
                 console.debug(
-                    `artifact files,${Object.entries(listData.artifacts[0])}`
+                    `artifact fields,${JSON.stringify(listData.artifacts[0])}`
                 )
 
                 console.debug(
