@@ -97,7 +97,11 @@ class BaselineCoverageService {
 
             const listData = await listResponse.json();
 
-            if (Array.isArray(listData.artifacts))
+            if (Array.isArray(listData.artifacts)) {
+                console.debug(
+                    `artifact files,${Object.entries(listData.artifacts[0])}`
+                )
+
                 console.debug(
                     `artifacts found: ${listData.artifacts.length}`, JSON.stringify({
                         artifacts: listData.artifacts.map((a) => ({
@@ -107,6 +111,9 @@ class BaselineCoverageService {
                         }))
                     })
                 )
+            }
+
+
 
             const matchingArtifacts = (listData.artifacts ?? [])
                 .filter((artifact) =>
