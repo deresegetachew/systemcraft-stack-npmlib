@@ -1,4 +1,4 @@
-name: CodeQLAnalyze
+name: codeql-analyze-wf
 on:
   workflow_call:  # reusable called by other workflows
     inputs:

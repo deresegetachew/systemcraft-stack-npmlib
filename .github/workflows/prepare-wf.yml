@@ -1,4 +1,4 @@
-name: Prepare
+name: prepare-wf
 
 on:
   pull_request:
@@ -89,4 +89,4 @@ jobs:
           echo "   ✓ BOT_TOKEN"
           echo "   ✓ NPM_TOKEN"
 
-          echo "Prepare job completed successfully."
+          echo "prepare-wf job completed successfully."

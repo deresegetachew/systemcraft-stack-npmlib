@@ -3,3 +3,9 @@ node_modules
 todo.md
 # sensitive files
 *.asc
+
+#coverage files
+coverage-artifacts
+coverage
+.nyc_output
+
