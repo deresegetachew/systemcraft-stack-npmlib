@@ -1,7 +1,7 @@
-name: main
+name: ci-build-lint-test-wf
 on:
   workflow_run:
-    workflows: ["Prepare"]
+    workflows: ["prepare-wf"]
     types: [completed]
   push:
     branches: [main]
@@ -50,7 +50,7 @@ jobs:
   codeql:
     needs: check-should-run
     if: ${{ needs.check-should-run.outputs.should-run == 'true' }}
-    uses: ./.github/workflows/codeql.yml
+    uses: ./.github/workflows/codeql-analyze-wf.yml
     permissions:
       # This permissions are required by codeql workflow
       security-events: write
