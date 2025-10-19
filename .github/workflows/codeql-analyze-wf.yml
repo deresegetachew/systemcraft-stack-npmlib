@@ -1,14 +1,14 @@
 name: codeql-analyze-wf
 on:
-  workflow_call:  # reusable called by other workflows
+  workflow_call: # reusable called by other workflows
     inputs:
       languages:
         required: false
         type: string
-        default: 'javascript'
+        default: "javascript"
+  workflow_dispatch: {}
   schedule:
-    - cron: '0 6 * * 1'   # weekly scan (runs standalone)
-
+    - cron: "0 6 * * 1" # weekly scan (runs standalone)
 jobs:
   analyze:
     runs-on: ubuntu-latest
@@ -20,7 +20,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v5
-     
+
       - name: Check Code Scanning setup
         id: check-scan
         uses: actions/github-script@v8
