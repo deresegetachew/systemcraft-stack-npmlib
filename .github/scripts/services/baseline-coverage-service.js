@@ -130,20 +130,15 @@ class BaselineCoverageService {
                 return null;
             }
 
-            const preferredArtifacts = matchingArtifacts.filter(
-                (artifact) => artifact.workflow_run?.head_branch === this.baseBranch
-            );
-            const artifact = (preferredArtifacts.length > 0 ? preferredArtifacts : matchingArtifacts)[0];
-
-            if (preferredArtifacts.length === 0) {
-                const detectedBranch = artifact.workflow_run?.head_branch ?? "unknown";
+            const artifact = matchingArtifacts[0];
+            const detectedBranch = artifact.workflow_run?.head_branch ?? "unknown";
+            if (this.baseBranch && detectedBranch !== this.baseBranch) {
                 console.info(
-                    `Info: No "${this.artifactName}" artifact found on branch "${this.baseBranch}". ` +
-                    `Using latest successful artifact from branch "${detectedBranch}".`
+                    `Info: Using "${this.artifactName}" artifact from branch "${detectedBranch}" (expected "${this.baseBranch}").`
                 );
             }
-
-            const downloadUrl = `https://api.github.com/repos/${owner}/${repoName}/actions/artifacts/${artifact.id}/download`;
+            const downloadUrl = artifact.archive_download_url ??
+                `https://api.github.com/repos/${owner}/${repoName}/actions/artifacts/${artifact.id}/zip`;
             const downloadResponse = await fetch(downloadUrl, { headers, redirect: "follow" });
 
             if (!downloadResponse.ok) {
