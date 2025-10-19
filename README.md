@@ -1,7 +1,7 @@
 # systemcraft/systemcraft-stack-npmlib
 
-[![CI/CD](https://github.com/deresegetachew/systemcraft-stack-npmlib/workflows/main/badge.svg)](https://github.com/deresegetachew/systemcraft-stack-npmlib/actions/workflows/main.yaml)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/deresegetachew/systemcraft-stack-npmlib/codeql.yml?label=CodeQL&logo=github)](https://github.com/deresegetachew/systemcraft-stack-npmlib/actions/workflows/codeql.yml)
+[![CI/CD](https://github.com/deresegetachew/systemcraft-stack-npmlib/workflows/ci-build-lint-test-wf/badge.svg)](https://github.com/deresegetachew/systemcraft-stack-npmlib/actions/workflows/ci-build-lint-test-wf.yml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/deresegetachew/systemcraft-stack-npmlib/codeql-analyze-wf.yml?label=CodeQL&logo=github)](https://github.com/deresegetachew/systemcraft-stack-npmlib/actions/workflows/codeql-analyze-wf.yml)
 [![GitHub release](https://img.shields.io/github/release/deresegetachew/systemcraft-stack-npmlib.svg)](https://github.com/deresegetachew/systemcraft-stack-npmlib/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -178,9 +178,9 @@ This repository is configured as a GitHub Template, making it easy to create new
    - **package.json**: Update name, description, author, and repository URLs
    - **packages/*/package.json**: Update package names and scopes
 
-### � Prepare Workflow & Automatic Labels
+### 🛠️ prepare-wf & Automatic Labels
 
-This repository uses a **Prepare workflow** (`prepare.yml`) that runs before all other workflows to handle setup tasks. The workflow automatically creates required labels for the repository.
+This repository uses the **prepare-wf** workflow (`prepare-wf.yml`) that runs before all other workflows to handle setup tasks. The workflow automatically creates required labels for the repository.
 
 #### Automatically Created Labels
 
@@ -193,27 +193,27 @@ The following labels are automatically created when PRs are opened:
 
 #### Workflow Architecture
 
-1. **Prepare Workflow** (`prepare.yml`) - Preparation and setup
+1. **prepare-wf** (`prepare-wf.yml`) - Preparation and setup
    - **Triggers**: PR events (opened, synchronize, reopened), pushes to main, manual dispatch
    - **Purpose**: Creates required labels, handles preparation tasks
    - **Permissions**: Content write access for label management
    - **Extensible**: Ready for future setup needs
 
-2. **Main Workflow** (`main.yml`) - Core CI/CD pipeline
+2. **ci-build-lint-test-wf** (`ci-build-lint-test-wf.yml`) - Core CI/CD pipeline
    - **Triggers**:
-     - After Prepare workflow completes (via `workflow_run`)
+     - After prepare-wf completes (via `workflow_run`)
      - Direct push to main branch
      - PR events (opened, reopened, synchronize, labeled, unlabeled)
    - **Architecture**:
      - Runs independently on PR events for immediate feedback
-     - Also runs after Prepare workflow completion for guaranteed setup
+     - Also runs after prepare-wf completion for guaranteed setup
      - Handles both preparation-dependent and direct trigger scenarios
    - **Jobs**: Build, test, changeset validation, publishing
 
 #### Why This Architecture?
 
-- **Immediate Feedback**: Main workflow runs directly on PR events for fast CI feedback
-- **Guaranteed Setup**: Also runs after Prepare workflow to ensure labels exist
+- **Immediate Feedback**: ci-build-lint-test-wf runs directly on PR events for fast CI feedback
+- **Guaranteed Setup**: Also runs after prepare-wf to ensure labels exist
 - **Label Responsiveness**: Re-runs immediately when labels are added/removed
 - **Flexible Triggering**: Works both independently and as a dependent workflow
 - **No Race Conditions**: Multiple trigger paths ensure robust execution
@@ -228,8 +228,8 @@ The template includes reusable composite actions for common workflow tasks:
 | Action | Purpose | Inputs | Usage |
 |---------|---------|--------|--------|
 | `setup-node-pnpm` | Sets up Node.js with pnpm and caching | `node-version` | Used in all workflows for consistent environment setup |
-| `require-changeset` | Validates PRs require changesets unless skipped | `skip-label` | Used in main workflow for changeset enforcement |
-| `setup-ci-git-identity` | Complete git setup with identity validation, GPG key import, and signing configuration | `git-user-name`, `git-user-email`, `gpg-private-key`, `gpg-passphrase` (all required), `purpose` (optional) | Used in main and template-sync workflows for signed git commits |
+| `require-changeset` | Validates PRs require changesets unless skipped | `skip-label` | Used in ci-build-lint-test-wf for changeset enforcement |
+| `setup-ci-git-identity` | Complete git setup with identity validation, GPG key import, and signing configuration | `git-user-name`, `git-user-email`, `gpg-private-key`, `gpg-passphrase` (all required), `purpose` (optional) | Used in ci-build-lint-test-wf and template-sync-wf for signed git commits |
 
 ### 🔐 Configure GitHub Secrets
 

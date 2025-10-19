@@ -1,4 +1,4 @@
-name: Sync from Template (selected paths, exclude packages)
+name: template-sync-wf
 
 on:
   schedule:
