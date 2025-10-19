@@ -87,7 +87,9 @@ class BaselineCoverageService {
                 Accept: "application/vnd.github+json"
             };
 
-            const listUrl = `https://api.github.com/repos/${owner}/${repoName}/actions/artifacts?per_page=100`;
+            const listUrl = new URL(`https://api.github.com/repos/${owner}/${repoName}/actions/artifacts`);
+            listUrl.searchParams.set("name", this.artifactName);
+            listUrl.searchParams.set("per_page", "100");
             const listResponse = await fetch(listUrl, { headers });
 
             if (!listResponse.ok) {
@@ -117,10 +119,9 @@ class BaselineCoverageService {
 
             const matchingArtifacts = (listData.artifacts ?? [])
                 .filter((artifact) =>
-                    artifact.name === this.artifactName &&
                     !artifact.expired &&
                     artifact.workflow_run &&
-                    artifact.workflow_run.conclusion === "success"
+                    this.#isSuccessfulRun(artifact.workflow_run)
                 )
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -194,6 +195,12 @@ class BaselineCoverageService {
             console.warn(`Warning: Could not download baseline artifact: ${err.message}`);
             return null;
         }
+    }
+
+    #isSuccessfulRun(runInfo = {}) {
+        // Some API responses omit conclusion, so treat missing as success unless explicitly failed/cancelled.
+        const conclusion = runInfo.conclusion ?? "success";
+        return !["failure", "cancelled", "timed_out", "action_required", "stale"].includes(conclusion);
     }
 }
 
