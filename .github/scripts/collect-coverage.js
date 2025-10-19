@@ -5,128 +5,133 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { walkAndFindCoverage, sanitizePackageDir, getPackageName, extractTotals, ensureDir, exists } from "./util.js";
-import { loadBaselineCoverage, addBaselineToRows } from "./diff-coverage.js";
-import { generateAndWriteReport } from "./report-coverage.js";
+import { BaselineCoverageService } from "./services/baseline-coverage-service.js";
+import { CoverageDiffFormatter } from "./coverage-diff-formatter.js";
+import { CoverageReporter } from "./report-coverage.js";
 
 
-export async function collectCoverage(options = {}) {
-    const {
-        repoRoot = process.cwd(),
-        packagesRoot = path.join(process.cwd(), "packages"),
-        outRoot = path.join(process.cwd(), process.env.OUT_DIR || "coverage-artifacts"),
-        coverageFileName = process.env.COVERAGE_FILE_NAME || "coverage-summary.json"
-    } = options;
-
-    await ensureDir(outRoot);
-
-    const rows = [];
-    let count = 0;
-
-    // Check if packages directory exists
-    try {
-        await fs.access(packagesRoot);
-    } catch {
-        throw new Error("No ./packages directory found.");
+class CoverageCollector {
+    constructor(options = {}) {
+        this.repoRoot = options.repoRoot ?? process.cwd();
+        this.packagesRoot = options.packagesRoot ?? path.join(this.repoRoot, "packages");
+        const outDir = options.outDir ?? process.env.OUT_DIR ?? "coverage-artifacts";
+        this.outRoot = path.isAbsolute(outDir) ? outDir : path.join(this.repoRoot, outDir);
+        this.coverageFileName = options.coverageFileName ?? process.env.COVERAGE_FILE_NAME ?? "coverage-summary.json";
     }
 
-    // Process each coverage file
-    for await (const f of walkAndFindCoverage(packagesRoot, coverageFileName)) {
-        // f = .../packages/<pkg>/.../coverage/{coverageFileName}
-        const coverageDir = path.dirname(f);
-        const pkgDir = path.dirname(path.dirname(f)); // up twice: coverage -> parent -> (usually package root)
-        const pkgName = await getPackageName(pkgDir);
-        const safe = sanitizePackageDir(pkgName);
-        const destDir = path.join(outRoot, safe);
-        await ensureDir(destDir);
+    async run() {
+        await ensureDir(this.outRoot);
 
-        // Copy the raw summary
-        await fs.copyFile(f, path.join(destDir, "coverage.json"));
+        const rows = [];
+        let count = 0;
 
-        // Also copy LCOV if present
-        const lcovPath = path.join(coverageDir, "lcov.info");
-        if (await exists(lcovPath)) {
-            await fs.copyFile(lcovPath, path.join(destDir, "lcov.info"));
+        try {
+            await fs.access(this.packagesRoot);
+        } catch {
+            throw new Error("No ./packages directory found.");
         }
 
-        // And copy HTML report (nyc/istanbul commonly writes ./coverage/** with index.html)
-        const htmlIndex = path.join(coverageDir, "index.html");
-        if (await exists(htmlIndex)) {
-            // Node 18+ supports fs.cp(recursive)
-            await fs.cp(coverageDir, path.join(destDir, "html"), { recursive: true, force: true });
+        for await (const coveragePath of walkAndFindCoverage(this.packagesRoot, this.coverageFileName)) {
+            const coverageDir = path.dirname(coveragePath);
+            const pkgDir = path.dirname(path.dirname(coveragePath));
+            const pkgName = await getPackageName(pkgDir);
+            const safe = sanitizePackageDir(pkgName);
+            const destDir = path.join(this.outRoot, safe);
+            await ensureDir(destDir);
+
+            await fs.copyFile(coveragePath, path.join(destDir, "coverage.json"));
+
+            const lcovPath = path.join(coverageDir, "lcov.info");
+            if (await exists(lcovPath)) {
+                await fs.copyFile(lcovPath, path.join(destDir, "lcov.info"));
+            }
+
+            const htmlIndex = path.join(coverageDir, "index.html");
+            if (await exists(htmlIndex)) {
+                await fs.cp(coverageDir, path.join(destDir, "html"), { recursive: true, force: true });
+            }
+
+            const summary = JSON.parse(await fs.readFile(coveragePath, "utf8"));
+            const totals = extractTotals(summary);
+
+            rows.push({
+                package: pkgName,
+                safe,
+                rel: path.relative(this.repoRoot, coveragePath),
+                totals,
+            });
+            count++;
         }
 
-        // Parse & collect totals
-        const summary = JSON.parse(await fs.readFile(f, "utf8"));
-        const totals = extractTotals(summary);
+        const indexData = {
+            generatedAt: new Date().toISOString(),
+            count,
+            items: rows,
+            outRoot: path.relative(this.repoRoot, this.outRoot)
+        };
 
-        rows.push({
-            package: pkgName,
-            safe,
-            rel: path.relative(repoRoot, f),
-            totals,
-        });
-        count++;
+        await fs.writeFile(
+            path.join(this.outRoot, "index.json"),
+            JSON.stringify(indexData, null, 2),
+            "utf8"
+        );
+
+        return {
+            rows,
+            count,
+            outRoot: this.outRoot,
+            repoRoot: this.repoRoot,
+            packagesRoot: this.packagesRoot,
+            coverageFileName: this.coverageFileName
+        };
     }
-
-    // Write machine-readable index
-    const indexData = {
-        generatedAt: new Date().toISOString(),
-        count,
-        items: rows,
-        outRoot: path.relative(repoRoot, outRoot)
-    };
-
-    await fs.writeFile(
-        path.join(outRoot, "index.json"),
-        JSON.stringify(indexData, null, 2),
-        "utf8"
-    );
-
-    return {
-        rows,
-        count,
-        outRoot,
-        repoRoot,
-        packagesRoot,
-        coverageFileName
-    };
 }
-
 
 async function main() {
     try {
-        // Configuration from environment
         const enableDiff = process.env.ENABLE_COVERAGE_DIFF === "true";
         const baselineArtifactPath = process.env.BASELINE_ARTIFACT_PATH;
 
         console.log("🔍 Collecting coverage data...");
 
-        // Step 1: Collect coverage
-        const result = await collectCoverage();
+        const collector = new CoverageCollector();
+        const result = await collector.run();
         console.log(`✅ Collected ${result.count} coverage summaries`);
 
-        // Step 2: Handle diff if enabled
         let rowsWithBaseline = result.rows;
         let baselineCoverage = new Map();
+        const diffFormatter = new CoverageDiffFormatter();
 
-        if (enableDiff && baselineArtifactPath) {
-            console.log(`📦 Loading baseline from: ${baselineArtifactPath}`);
-            baselineCoverage = await loadBaselineCoverage(baselineArtifactPath);
-            console.log(`📊 Found baseline coverage for ${baselineCoverage.size} packages`);
-            rowsWithBaseline = addBaselineToRows(result.rows, baselineCoverage);
+        if (enableDiff) {
+            const baselineService = new BaselineCoverageService({
+                baseBranch: "main",
+                githubToken: process.env.GITHUB_TOKEN,
+                repo: process.env.GITHUB_REPOSITORY
+            });
+
+            if (baselineArtifactPath) {
+                console.log(`📦 Attempting to load baseline from artifact path: ${baselineArtifactPath}`);
+            } else {
+                console.log("📦 No artifact path provided; attempting to load baseline via API.");
+            }
+
+            baselineCoverage = await baselineService.load(baselineArtifactPath || undefined);
+            console.log(`📊 Baseline coverage available for ${baselineCoverage.size} packages`);
+
+            rowsWithBaseline = diffFormatter.addBaselineToRows(result.rows, baselineCoverage);
         }
 
-        // Step 3: Generate report
         console.log("📝 Generating coverage report...");
-        const reportOptions = {
+        const reporter = new CoverageReporter({
             enableDiff,
             baseBranch: "main",
             baselineCoverage,
             outRoot: result.outRoot,
-            repoRoot: result.repoRoot
-        };
+            repoRoot: result.repoRoot,
+            diffFormatter
+        });
 
-        await generateAndWriteReport(rowsWithBaseline, reportOptions);
+        await reporter.generate(rowsWithBaseline);
         console.log("✅ Coverage report generated!");
 
         if (result.count === 0) {
@@ -143,3 +148,5 @@ main().catch((err) => {
     console.error(err);
     process.exit(1);
 });
+
+export { CoverageCollector };
