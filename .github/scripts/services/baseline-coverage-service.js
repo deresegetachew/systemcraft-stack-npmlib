@@ -96,22 +96,38 @@ class BaselineCoverageService {
             }
 
             const listData = await listResponse.json();
-            const candidates = (listData.artifacts ?? [])
-                .filter(a =>
-                    a.name === this.artifactName &&
-                    !a.expired &&
-                    a.workflow_run &&
-                    a.workflow_run.head_branch === this.baseBranch &&
-                    a.workflow_run.conclusion === "success"
+
+            console.debug(
+                `artifacts found:`, { listData }
+            )
+
+            const matchingArtifacts = (listData.artifacts ?? [])
+                .filter((artifact) =>
+                    artifact.name === this.artifactName &&
+                    !artifact.expired &&
+                    artifact.workflow_run &&
+                    artifact.workflow_run.conclusion === "success"
                 )
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-            if (candidates.length === 0) {
-                console.warn(`Warning: No active "${this.artifactName}" artifact found for branch "${this.baseBranch}".`);
+            if (matchingArtifacts.length === 0) {
+                console.warn(`Warning: No active "${this.artifactName}" artifact found.`);
                 return null;
             }
 
-            const artifact = candidates[0];
+            const preferredArtifacts = matchingArtifacts.filter(
+                (artifact) => artifact.workflow_run?.head_branch === this.baseBranch
+            );
+            const artifact = (preferredArtifacts.length > 0 ? preferredArtifacts : matchingArtifacts)[0];
+
+            if (preferredArtifacts.length === 0) {
+                const detectedBranch = artifact.workflow_run?.head_branch ?? "unknown";
+                console.info(
+                    `Info: No "${this.artifactName}" artifact found on branch "${this.baseBranch}". ` +
+                    `Using latest successful artifact from branch "${detectedBranch}".`
+                );
+            }
+
             const downloadUrl = `https://api.github.com/repos/${owner}/${repoName}/actions/artifacts/${artifact.id}/download`;
             const downloadResponse = await fetch(downloadUrl, { headers, redirect: "follow" });
 
