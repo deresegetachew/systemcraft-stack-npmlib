@@ -1,5 +1,12 @@
 # @systemcraft/lib-two
 
+## 1.0.0
+
+### Major Changes
+
+- 7663883: testing major ver release
+- 1aa43b9: testing major version release
+
 ## 0.1.6
 
 ### Patch Changes
