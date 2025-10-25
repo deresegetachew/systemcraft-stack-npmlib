@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   push:
-    branches: [ main ]
+    branches: [main, "release/*", "changeset-release/*"]
   workflow_dispatch: {}
 
 jobs:
@@ -12,11 +12,11 @@ jobs:
     name: Ensure required labels exist
     runs-on: ubuntu-latest
     permissions:
-          contents: write
-          issues: write
+      contents: write
+      issues: write
     steps:
       - uses: actions/checkout@v5
-      
+
       - uses: ./.github/actions/ensure-label
         with:
           labels_json: |
@@ -33,7 +33,7 @@ jobs:
       - name: Check required variables and secrets
         run: |
           echo "🔍 Checking repository configuration..."
-          
+
                     # Check required variables
                     MISSING_VARS=""
                     if [[ -z "${{ vars.CI_GPG_USER_NAME }}" ]]; then
