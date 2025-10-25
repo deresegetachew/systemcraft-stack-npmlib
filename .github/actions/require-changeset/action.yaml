@@ -33,8 +33,8 @@ runs:
         fi
 
         # Skip guard for release PRs created by Changesets
-        if [[ "$PR_TITLE" == "Version Packages"* ]] || [[ "$ACTOR" == "github-actions[bot]" ]]; then
-          echo "ℹ️ Release PR detected, skipping changeset check."
+        if [[ "$PR_TITLE" == "Version Packages"* ]] || [[ "$ACTOR" == "github-actions[bot]" ]] || [[ "$HEAD_REF" == "changeset-release/"* ]]; then
+          echo "ℹ️ Release PR, dependabot, or bot PR detected, skipping changeset check."
           exit 0
         fi
 
