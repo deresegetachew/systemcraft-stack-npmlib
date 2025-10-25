@@ -4,10 +4,10 @@ on:
     workflows: ["prepare-wf"]
     types: [completed]
   push:
-    branches: [main]
+    branches: [main, "release/*"]
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
-    branches: [main]
+    branches: [main, "release/*"]
 
 jobs:
   # Check if we should run (centralized condition)
@@ -59,14 +59,17 @@ jobs:
     with:
       languages: "javascript" # comma separated values code
 
+  # we are keeping publish here bc uploading artifacts across wf can be buggy.
   publish:
     needs: [check-should-run, build]
     name: publish
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-should-run.outputs.should-run == 'true' }}
+    if: >
+      needs.check-should-run.outputs.should-run == 'true' &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      # Grants write access to the GitHub Actions workflow's OIDC token, enabling authentication with external services.
       id-token: write
       pull-requests: write
     strategy:
@@ -75,14 +78,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          persist-credentials: false # so we control the push identity
+          persist-credentials: false
 
-      # Setup Node.js with pnpm
       - uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: ${{ matrix.node-version }}
 
-        # Configure git identity and GPG signing for release commits
       - uses: ./.github/actions/setup-ci-git-identity
         with:
           purpose: "GPG-signed release commits"
@@ -91,7 +92,6 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      # Set up authentication to push changes using the bot / pat token
       - name: Set up auth with bot token
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.BOT_TOKEN }}@github.com/${{ github.repository }}.git
@@ -104,7 +104,7 @@ jobs:
           git config --get user.email
           echo "Env identity:"
           env | grep -E 'GIT_(AUTHOR|COMMITTER)_' || true
-      # Download build artifacts to the 'packages' directory
+
       - name: Download build artifacts
         uses: actions/download-artifact@v5
         with:
@@ -119,7 +119,6 @@ jobs:
           echo "Package directories:"
           ls -la packages/*/dist/ 2>/dev/null || echo "No dist directories found"
 
-      # Create Release Pull Request or Publish
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
