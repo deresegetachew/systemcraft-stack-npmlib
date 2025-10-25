@@ -3,6 +3,7 @@ name: prepare-wf
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    branches: [ main, changeset-release/* ]
   push:
     branches: [main, "release/*", "changeset-release/*"]
   workflow_dispatch: {}
