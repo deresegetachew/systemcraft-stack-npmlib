@@ -87,6 +87,14 @@ pnpm run test
 
 ```
 
+## ⚙️ Repository Configuration
+
+This repository requires the following repository variable to be set under **Settings → Secrets and variables → Actions → Variables**.
+
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| `ENABLE_MULTI_RELEASE` | `false` | **Required**. Sets the release strategy. `false` for single-release mode (only `main` is released). `true` for multi-release mode (enables patching older versions via `release/*` branches). |
+
 ## 🏗️ Project Structure
 
 ```text
@@ -242,23 +250,20 @@ Navigate to **Settings → Secrets and variables → Actions** and add:
 | `GPG_PRIVATE_KEY` | ASCII-armored GPG private key | Signing release commits and template sync commits |
 | `GPG_PASSPHRASE` | Passphrase for GPG key | GPG operations for all signed commits |
 
-### 🔄 Template Synchronization Configuration
+### ⚙️ Repository Variables Configuration
 
-This repository includes an automated template synchronization workflow that keeps downstream repositories in sync with template updates. The template sync is configured using **repository variables** (not secrets) that can be customized per repository.
-
-#### Template Sync Variables
-
-Navigate to **Settings → Secrets and variables → Actions → Variables** and configure:
+This repository is configured using **repository variables** (not secrets). These variables control core features like the release strategy and automated template synchronization. They must be configured under **Settings → Secrets and variables → Actions → Variables**.
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
-| `TEMPLATE_SYNC_ENABLED` | `true` | Enable/disable template synchronization |
-| `TEMPLATE_EXCLUDE` | `packages .changeset .changesets LICENSE LICENSES node_modules` | Space-separated paths to exclude from sync |
-| `TARGET_BRANCH` | `main` | Target branch for sync PRs |
-| `SYNC_BRANCH` | `chore/sync-template` | Branch name for sync PRs |
-| `TEMPLATE_SYNC_LABEL` | `template-sync` | Label to apply to sync PRs |
-| `CI_GPG_USER_NAME` | **Required** | Git user name for all automated commits (releases and template sync) |
-| `CI_GPG_USER_EMAIL` | **Required** | Git user email for all automated commits (releases and template sync) |
+| `ENABLE_MULTI_RELEASE` | `false` | **Required**. Sets the release strategy. `false` for single-release mode (only `main` is released). `true` for multi-release mode (enables patching older versions via `release/*` branches). |
+| `CI_GPG_USER_NAME` | **Required** | **Required**. Git user name for all automated commits (releases and template sync). |
+| `CI_GPG_USER_EMAIL` | **Required** | **Required**. Git user email for all automated commits (releases and template sync). |
+| `TEMPLATE_SYNC_ENABLED` | `true` | Enable/disable the weekly workflow that syncs this repository with the template. |
+| `TEMPLATE_EXCLUDE` | `packages .changeset .changesets LICENSE LICENSES node_modules` | Space-separated list of paths to exclude from template synchronization. |
+| `TARGET_BRANCH` | `main` | The target branch for template synchronization pull requests. |
+| `SYNC_BRANCH` | `chore/sync-template` | The name of the branch used for template synchronization pull requests. |
+| `TEMPLATE_SYNC_LABEL` | `template-sync` | The label to apply to template synchronization pull requests. |
 
 #### How Template Sync Works
 
