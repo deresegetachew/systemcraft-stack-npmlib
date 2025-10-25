@@ -123,7 +123,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: "pnpm run release"
+          publish: "node .github/scripts/release.js"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

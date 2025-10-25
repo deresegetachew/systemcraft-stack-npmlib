@@ -58,7 +58,7 @@ function getPackageInfo(packageName) {
 }
 
 function main() {
-  console.log('🚀 Starting intelligent release script...');
+  console.log('🚀 Starting release script...');
 
   const isMultiRelease = process.env.ENABLE_MULTI_RELEASE === 'true';
   const currentBranch = process.env.GITHUB_REF_NAME;
