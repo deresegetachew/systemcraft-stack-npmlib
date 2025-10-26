@@ -1,5 +1,12 @@
 # @systemcraft/lib-two
 
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [d3ddbe9]
+  - @systemcraft/lib-one@2.0.0
+
 ## 1.0.1
 
 ### Patch Changes
