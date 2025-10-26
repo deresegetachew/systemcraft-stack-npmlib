@@ -4,10 +4,12 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { walkAndFindCoverage, sanitizePackageDir, getPackageName, extractTotals, ensureDir, exists } from "./coverage.util.js";
+import { walkAndFindCoverage, extractTotals } from "./coverage.util.js";
 import { BaselineCoverageService } from "./services/baseline-coverage-service.js";
 import { CoverageDiffFormatter } from "./coverage-diff-formatter.js";
 import { CoverageReporter } from "./report-coverage.js";
+import { exists, ensureDir, getPackageName, sanitizePackageDir } from "../utils/utils.js";
+
 
 
 class CoverageCollector {

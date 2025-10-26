@@ -4,7 +4,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { toPct } from "./util.js";
+import { toPct } from "../utils/utils.js";
 import { CoverageDiffFormatter } from "./coverage-diff-formatter.js";
 
 

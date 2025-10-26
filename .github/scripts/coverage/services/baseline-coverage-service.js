@@ -6,7 +6,8 @@ import path from "node:path";
 import os from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { extractTotals, exists } from "../coverage.util.js";
+import { extractTotals } from "../coverage.util.js";
+import { exists } from "../../utils/utils.js";
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_ARTIFACT_NAME = "coverage-baseline";

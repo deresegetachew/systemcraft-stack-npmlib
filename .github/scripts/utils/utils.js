@@ -62,10 +62,28 @@ function runShellCommand(cmd, shellFn = exec, options = {}) {
     return shellFn(cmd, options);
 }
 
+export function sanitizePackageDir(nameOrDir) {
+    // turn @scope/pkg -> at-scope__pkg (safe for artifact folder names)
+    return nameOrDir.replaceAll("@", "at-").replaceAll("/", "__");
+}
+
+export async function getPackageName(pkgDir) {
+    try {
+        const pkgJson = JSON.parse(await fs.readFile(path.join(pkgDir, "package.json"), "utf8"));
+        if (pkgJson && typeof pkgJson.name === "string") return pkgJson.name;
+    } catch {
+        // ignore
+    }
+    return path.basename(pkgDir);
+}
+
 export default {
     ensureDir,
     exists,
     getPackageInfo,
+    sanitizePackageDir,
+    getPackageName,
     loadChangesetFiles,
+
     runShellCommand
 }
