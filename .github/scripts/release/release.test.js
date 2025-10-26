@@ -98,7 +98,7 @@ describe('release.js', () => {
                 main(process.env, mockFsApi, process.cwd(), mockShell);
 
                 const calls = mockShell.mock.calls;
-                assert.strictEqual(calls.length, 4, 'Expected 4 shell commands');
+                assert.strictEqual(calls.length, 4, 'Expected 4 shell commands'); // 1 ls-remote, 1 branch, 1 push, 1 publish
                 assert.strictEqual(calls[0].arguments[0], 'git ls-remote --heads origin release/pkg-one_v1');
                 assert.strictEqual(calls[1].arguments[0], 'git branch release/pkg-one_v1');
                 assert.strictEqual(calls[2].arguments[0], 'git push origin release/pkg-one_v1');
@@ -123,7 +123,7 @@ describe('release.js', () => {
                 main(process.env, mockFsApi, process.cwd(), mockShell);
 
                 const calls = mockShell.mock.calls;
-                assert.strictEqual(calls.length, 7, 'Expected 7 shell commands');
+                assert.strictEqual(calls.length, 7, 'Expected 7 shell commands'); // 2 * (ls-remote, branch, push) + 1 publish
                 assert.strictEqual(calls[0].arguments[0], 'git ls-remote --heads origin release/pkg-one_v1');
                 assert.strictEqual(calls[1].arguments[0], 'git branch release/pkg-one_v1');
                 assert.strictEqual(calls[2].arguments[0], 'git push origin release/pkg-one_v1');
@@ -163,7 +163,7 @@ describe('release.js', () => {
 
                 const calls = mockShell.mock.calls;
                 // Expects branches for pkg-one and pkg-three. It should ignore pkg-two (single quotes) as it's an invalid format.
-                assert.strictEqual(calls.length, 7, 'Expected 7 shell commands for 2 valid major bumps');
+                assert.strictEqual(calls.length, 7, 'Expected 7 shell commands for 2 valid major bumps'); // 2 * (ls-remote, branch, push) + 1 publish
                 assert.ok(calls.some(c => c.arguments[0].includes('release/pkg-one_v1')));
                 assert.ok(calls.some(c => c.arguments[0].includes('release/pkg-three_v3')));
             });

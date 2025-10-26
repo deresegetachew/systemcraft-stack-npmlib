@@ -125,7 +125,7 @@ function executeSteps(steps, shell) {
       }
 
       case 'exec': {
-        runShellCommand(step.cmd, shell);
+        shell(step.cmd);
         break;
       }
 
@@ -135,7 +135,7 @@ function executeSteps(steps, shell) {
         console.log(`Checking for branch '${branchName}'...`);
 
         const branchExists =
-          runShellCommand(`git ls-remote --heads origin ${branchName}`, shell, {
+          shell(`git ls-remote --heads origin ${branchName}`, {
             stdio: 'pipe',
           })
             .toString()
@@ -143,8 +143,8 @@ function executeSteps(steps, shell) {
 
         if (!branchExists) {
           console.log(`Creating '${branchName}'...`);
-          runShellCommand(`git branch ${branchName}`, shell);
-          runShellCommand(`git push origin ${branchName}`, shell);
+          shell(`git branch ${branchName}`);
+          shell(`git push origin ${branchName}`);
           console.log(`✅ Created and pushed '${branchName}'`);
         } else {
           console.log(`✅ Branch '${branchName}' already exists.`);
