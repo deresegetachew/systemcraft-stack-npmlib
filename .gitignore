@@ -23,3 +23,5 @@ node_modules/
 # Coverage output
 coverage/
 coverage-artifacts/
+
+!.github/scripts/coverage
