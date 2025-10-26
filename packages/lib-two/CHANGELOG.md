@@ -1,5 +1,11 @@
 # @systemcraft/lib-two
 
+## 2.0.0
+
+### Major Changes
+
+- 564ca29: test major changes
+
 ## 1.0.2
 
 ### Patch Changes
