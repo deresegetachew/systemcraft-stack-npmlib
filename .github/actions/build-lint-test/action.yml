@@ -46,7 +46,7 @@ runs:
         ENABLE_COVERAGE_DIFF: ${{ github.event_name == 'pull_request' }}
         BASELINE_ARTIFACT_PATH: ${{ github.event_name == 'pull_request' && format('coverage-baseline-{0}', steps.sanitize_base_ref.outputs.name) || '' }}
         GITHUB_TOKEN: ${{ github.token }}
-      run: node .github/scripts/collect-coverage.js
+      run: node .github/scripts/coverage/collect-coverage.js
 
     # Upload lightweight JSON + Markdown summary
     - name: Upload coverage artifacts

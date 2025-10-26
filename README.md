@@ -131,7 +131,7 @@ For the automated coverage collection to work properly, each package must:
 
 ### Coverage Collection Script
 
-The `.github/scripts/collect-coverage.js` script automatically:
+The `.github/scripts/coverage/collect-coverage.js` script automatically:
 
 - Recursively searches for `coverage/coverage-summary.json` files under `./packages`
 - Copies coverage summaries, LCOV reports, and HTML reports to `coverage-artifacts/`

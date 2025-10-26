@@ -4,10 +4,12 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { walkAndFindCoverage, sanitizePackageDir, getPackageName, extractTotals, ensureDir, exists } from "./util.js";
+import { walkAndFindCoverage, extractTotals } from "./coverage.util.js";
 import { BaselineCoverageService } from "./services/baseline-coverage-service.js";
 import { CoverageDiffFormatter } from "./coverage-diff-formatter.js";
 import { CoverageReporter } from "./report-coverage.js";
+import { exists, ensureDir, getPackageName, sanitizePackageDir } from "../utils/utils.js";
+
 
 
 class CoverageCollector {
@@ -104,9 +106,12 @@ async function main() {
 
         if (enableDiff) {
             const baselineService = new BaselineCoverageService({
-                baseBranch: "main",
+                // GITHUB_BASE_REF is the target branch in a PR (e.g., 'main' or 'release/v1')
+                // GITHUB_REF_NAME is the current branch on a push (e.g., 'main')
+                baseBranch: process.env.GITHUB_BASE_REF || process.env.GITHUB_REF_NAME || "main",
                 githubToken: process.env.GITHUB_TOKEN,
-                repo: process.env.GITHUB_REPOSITORY
+                repo: process.env.GITHUB_REPOSITORY,
+                artifactName: baselineArtifactPath
             });
 
             if (baselineArtifactPath) {
@@ -115,7 +120,7 @@ async function main() {
                 console.log("📦 No artifact path provided; attempting to load baseline via API.");
             }
 
-            baselineCoverage = await baselineService.load(baselineArtifactPath || undefined);
+            baselineCoverage = await baselineService.load();
             console.log(`📊 Baseline coverage available for ${baselineCoverage.size} packages`);
 
             rowsWithBaseline = diffFormatter.addBaselineToRows(result.rows, baselineCoverage);
@@ -124,7 +129,7 @@ async function main() {
         console.log("📝 Generating coverage report...");
         const reporter = new CoverageReporter({
             enableDiff,
-            baseBranch: "main",
+            baseBranch: process.env.GITHUB_BASE_REF || "main",
             baselineCoverage,
             outRoot: result.outRoot,
             repoRoot: result.repoRoot,
