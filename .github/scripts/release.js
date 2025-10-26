@@ -63,6 +63,9 @@ function main() {
   const isMultiRelease = process.env.ENABLE_MULTI_RELEASE === 'true';
   const currentBranch = process.env.GITHUB_REF_NAME;
 
+  console.log(`🔍 Current branch: ${currentBranch}`);
+  console.log(`🔍 Multi-release mode: ${process.env.ENABLE_MULTI_RELEASE}`);
+
   if (!isMultiRelease) {
     console.log('ℹ️ Single-release mode detected. Running standard publish.');
     exec('pnpm changeset publish');
