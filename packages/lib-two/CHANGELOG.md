@@ -1,5 +1,19 @@
 # @systemcraft/lib-two
 
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [1110cd4]
+  - @systemcraft/lib-one@1.0.0
+
+## 1.0.0
+
+### Major Changes
+
+- 7663883: testing major ver release
+- 1aa43b9: testing major version release
+
 ## 0.1.6
 
 ### Patch Changes

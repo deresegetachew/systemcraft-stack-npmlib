@@ -1,28 +1,14 @@
 name: ci-build-lint-test-wf
 on:
-  workflow_run:
-    workflows: ["prepare-wf"]
-    types: [completed]
   push:
-    branches: [main, "release/*"]
+    branches: [main, "release/*", "changeset-release/*"]
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
-    branches: [main, "release/*"]
+    branches: [main, "release/*", "changeset-release/*"]
 
 jobs:
-  # Check if we should run (centralized condition)
-  check-should-run:
-    runs-on: ubuntu-latest
-    outputs:
-      should-run: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
-    steps:
-      - name: Check condition
-        run: echo "Should run jobs:${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}"
-
   build:
     name: build
-    needs: check-should-run
-    if: ${{ needs.check-should-run.outputs.should-run == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       # This permissions are required by testcoverage report
@@ -48,8 +34,6 @@ jobs:
       - uses: ./.github/actions/build-lint-test
 
   codeql:
-    needs: check-should-run
-    if: ${{ needs.check-should-run.outputs.should-run == 'true' }}
     uses: ./.github/workflows/codeql-analyze-wf.yml
     permissions:
       # This permissions are required by codeql workflow
@@ -61,10 +45,9 @@ jobs:
 
   # we are keeping publish here bc uploading artifacts across wf can be buggy.
   publish:
-    needs: [check-should-run, build]
+    needs: [build]
     name: publish
     if: >
-      needs.check-should-run.outputs.should-run == 'true' &&
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
     runs-on: ubuntu-latest
@@ -123,10 +106,11 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: "pnpm run release"
+          publish: "node .github/scripts/release/release.js"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENABLE_MULTI_RELEASE: ${{ vars.ENABLE_MULTI_RELEASE }}
 
       # Debugging step to show the latest commit with signature info
       - name: Show latest commit + signature

@@ -9,7 +9,8 @@
 		"typescript": "^5.9.3"
 	},
 	"scripts": {
-		"release": "node .github/scripts/release.js"
+		"test-gh-scripts": "c8 --reporter=text --reporter=html node --test --import './.github/scripts/test/setup.js' './.github/scripts/**/*.test.js'",
+		"test-gh-scripts:debug": "node --test  --inspect --import './.github/scripts/test/setup.js' './.github/scripts/**/*.test.js'"
 	},
 	"packageManager": "pnpm@10.17.1+sha256.a1e0133f6801c13039ae41309e5e5a7d1058a3a1e1edd020a4944a83c5368d04"
 }
