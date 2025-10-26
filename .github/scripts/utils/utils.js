@@ -1,11 +1,14 @@
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
+import process from 'node:process';
 
 
-async function ensureDir(d) {
+export async function ensureDir(d) {
     await fs.mkdir(d, { recursive: true });
 }
 
-async function exists(p) {
+export async function exists(p) {
     try {
         await fs.access(p);
         return true;
@@ -14,7 +17,7 @@ async function exists(p) {
     }
 }
 
-function exec(command, options = {}) {
+export function exec(command, options = {}) {
     console.log(`> ${command}`);
     try {
         return execSync(command, { stdio: 'inherit', ...options });
@@ -24,7 +27,7 @@ function exec(command, options = {}) {
     }
 }
 
-function getPackageInfo(packageName, fsApi, baseDir) {
+export function getPackageInfo(packageName, fsApi, baseDir) {
     const packageDirName = packageName.split('/').pop();
     const packagePath = path.resolve(baseDir, 'packages', packageDirName);
     const packageJsonPath = path.join(packagePath, 'package.json');
@@ -41,7 +44,7 @@ function getPackageInfo(packageName, fsApi, baseDir) {
 
 }
 
-function loadChangesetFiles(fsApi, baseDir) {
+export function loadChangesetFiles(fsApi, baseDir) {
     const changesetsDir = path.resolve(baseDir, '.changeset');
 
     if (!fsApi.existsSync(changesetsDir)) {
@@ -57,17 +60,17 @@ function loadChangesetFiles(fsApi, baseDir) {
         }));
 }
 
-function runShellCommand(cmd, shellFn = exec, options = {}) {
+export function runShellCommand(cmd, shellFn = exec, options = {}) {
     console.log(`▶ ${cmd}`);
     return shellFn(cmd, options);
 }
 
-function sanitizePackageDir(nameOrDir) {
+export function sanitizePackageDir(nameOrDir) {
     // turn @scope/pkg -> at-scope__pkg (safe for artifact folder names)
     return nameOrDir.replaceAll("@", "at-").replaceAll("/", "__");
 }
 
-async function getPackageName(pkgDir) {
+export async function getPackageName(pkgDir) {
     try {
         const pkgJson = JSON.parse(await fs.readFile(path.join(pkgDir, "package.json"), "utf8"));
         if (pkgJson && typeof pkgJson.name === "string") return pkgJson.name;
@@ -75,15 +78,4 @@ async function getPackageName(pkgDir) {
         // ignore
     }
     return path.basename(pkgDir);
-}
-
-export default {
-    ensureDir,
-    exists,
-    getPackageInfo,
-    sanitizePackageDir,
-    getPackageName,
-    loadChangesetFiles,
-
-    runShellCommand
 }

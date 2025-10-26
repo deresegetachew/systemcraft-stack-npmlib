@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import utils from '../utils/utils.js';
+import { loadChangesetFiles, getPackageInfo, runShellCommand } from '../utils/utils.js';
 
 
 function getReleaseContext(env) {
@@ -35,7 +35,7 @@ function extractMajorBumpPackagesFromChangesets(changesetFiles) {
 
 
 function getMajorBumpPackages(fsApi, baseDir) {
-  const files = utils.loadChangesetFiles(fsApi, baseDir);
+  const files = loadChangesetFiles(fsApi, baseDir);
   if (files.length === 0) {
     console.log('ℹ️ No changesets found.');
     return new Set();
@@ -92,7 +92,7 @@ function planRelease(ctx, branchInfo, fsApi, baseDir) {
   }
 
   for (const pkgName of majorBumpPackages) {
-    const pkgInfo = utils.getPackageInfo(pkgName, fsApi, baseDir);
+    const pkgInfo = getPackageInfo(pkgName, fsApi, baseDir);
     if (!pkgInfo) {
       steps.push({
         type: 'log-warn',
@@ -125,7 +125,7 @@ function executeSteps(steps, shell) {
       }
 
       case 'exec': {
-        utils.runShellCommand(step.cmd, shell);
+        runShellCommand(step.cmd, shell);
         break;
       }
 
@@ -135,7 +135,7 @@ function executeSteps(steps, shell) {
         console.log(`Checking for branch '${branchName}'...`);
 
         const branchExists =
-          utils.runShellCommand(`git ls-remote --heads origin ${branchName}`, shell, {
+          runShellCommand(`git ls-remote --heads origin ${branchName}`, shell, {
             stdio: 'pipe',
           })
             .toString()
@@ -143,8 +143,8 @@ function executeSteps(steps, shell) {
 
         if (!branchExists) {
           console.log(`Creating '${branchName}'...`);
-          utils.runShellCommand(`git branch ${branchName}`, shell);
-          utils.runShellCommand(`git push origin ${branchName}`, shell);
+          runShellCommand(`git branch ${branchName}`, shell);
+          runShellCommand(`git push origin ${branchName}`, shell);
           console.log(`✅ Created and pushed '${branchName}'`);
         } else {
           console.log(`✅ Branch '${branchName}' already exists.`);
@@ -163,7 +163,7 @@ export function main(
   env = process.env,
   fsApi = fs,
   baseDir = process.cwd(),
-  shell = utils.runShellCommand
+  shell = runShellCommand
 ) {
   console.log('🚀 Starting release script...');
 
