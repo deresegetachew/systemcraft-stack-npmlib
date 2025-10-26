@@ -1,14 +1,12 @@
 name: ci-build-lint-test-wf
 on:
   push:
-    branches: [main, "release/*"]
+    branches: [main, "release/*", "changeset-release/*"]
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
     branches: [main, "release/*", "changeset-release/*"]
 
 jobs:
-
-
   build:
     name: build
     runs-on: ubuntu-latest
@@ -112,6 +110,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENABLE_MULTI_RELEASE: ${{ vars.ENABLE_MULTI_RELEASE }}
 
       # Debugging step to show the latest commit with signature info
       - name: Show latest commit + signature
