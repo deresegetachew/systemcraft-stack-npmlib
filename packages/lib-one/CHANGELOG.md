@@ -1,5 +1,11 @@
 # @systemcraft/lib-one
 
+## 1.0.0
+
+### Major Changes
+
+- 1110cd4: testing multi release
+
 ## 0.1.6
 
 ### Patch Changes
