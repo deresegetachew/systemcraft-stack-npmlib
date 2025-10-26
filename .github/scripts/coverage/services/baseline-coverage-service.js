@@ -22,16 +22,10 @@ class BaselineCoverageService {
         this.tempDir = options.tempDir ?? path.join(os.tmpdir(), "coverage-baseline");
     }
 
-    async load(baselineArtifactPath) {
+    async load() {
         const baseline = new Map();
-        let sourcePath = baselineArtifactPath;
-
-        const hasIndex = sourcePath && await exists(path.join(sourcePath, "index.json"));
-        if (!hasIndex) {
-            sourcePath = await this.#downloadLatestBaselineArtifact();
-        }
-
-        if (!sourcePath || !(await exists(path.join(sourcePath, "index.json")))) {
+        const sourcePath = await this.#downloadLatestBaselineArtifact();
+        if (!sourcePath) {
             console.warn("No baseline coverage artifact found");
             return baseline;
         }
