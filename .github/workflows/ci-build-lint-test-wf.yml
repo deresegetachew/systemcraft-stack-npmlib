@@ -106,6 +106,8 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
+          version: "node .github/scripts/release/version.js"
+          commit: "chore: update package versions and changelogs"
           publish: "node .github/scripts/release/release.js"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
