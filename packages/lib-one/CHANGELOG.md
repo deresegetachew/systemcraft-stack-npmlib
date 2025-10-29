@@ -1,5 +1,11 @@
 # @systemcraft/lib-one
 
+## 3.0.0
+
+### Major Changes
+
+- f143f7a: test major bump
+
 ## 2.0.1
 
 ### Patch Changes
