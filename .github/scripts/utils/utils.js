@@ -53,11 +53,30 @@ export function loadChangesetFiles(fsApi, baseDir) {
 
     return fsApi
         .readdirSync(changesetsDir)
-        .filter((f) => f.endsWith('.md'))
+        .filter((f) => f.endsWith('.md') && f !== 'README.md')
         .map((filename) => ({
             filename,
             content: fsApi.readFileSync(path.join(changesetsDir, filename), 'utf-8'),
         }));
+}
+
+export function extractMajorBumpPackagesFromChangesets(changesetFiles) {
+    const majorBumpPackages = new Set();
+
+    for (const { content } of changesetFiles) {
+        const lines = content.split('\n');
+        for (const line of lines) {
+            if (line.includes(': major')) {
+                // This regex looks for a quoted package name followed by ": major"
+                const match = line.match(/"([^\"]+)"\s*:\s*major/);
+                const packageName = match ? match[1] : null;
+                if (packageName) {
+                    majorBumpPackages.add(packageName);
+                }
+            }
+        }
+    }
+    return majorBumpPackages;
 }
 
 export function runShellCommand(cmd, shellFn = exec, options = {}) {

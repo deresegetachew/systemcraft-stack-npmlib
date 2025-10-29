@@ -28,15 +28,6 @@ describe('release.js', () => {
     });
 
     describe('main()', () => {
-        it('should throw an error if .changeset directory does not exist', () => {
-            process.env.GITHUB_REF_NAME = 'main';
-            mockFsApi.existsSync.mock.mockImplementationOnce(() => false);
-
-            assert.throws(() => {
-                main(process.env, mockFsApi, process.cwd(), mockShell);
-            }, /❌ .changeset directory does not exist/);
-        });
-
         it('should throw an error if branch is not main or release/*', () => {
             process.env.GITHUB_REF_NAME = 'feature';
 
@@ -61,9 +52,11 @@ describe('release.js', () => {
         });
 
         describe('multi-release mode', () => {
-            it('should publish on release branch if no major bump packages are found on main branch', () => {
+            it('should just publish if no plan file is found', () => {
                 process.env.ENABLE_MULTI_RELEASE = 'true';
                 process.env.GITHUB_REF_NAME = 'main';
+
+                mockFsApi.existsSync.mock.mockImplementation(() => false);
 
                 main(process.env, mockFsApi, process.cwd(), mockShell);
 
@@ -74,98 +67,53 @@ describe('release.js', () => {
                 );
             });
 
-            it('should create a new release branch when on main branch and major bump is detected', () => {
+            it('should create a new release branch based on the plan file', () => {
                 process.env.ENABLE_MULTI_RELEASE = 'true';
                 process.env.GITHUB_REF_NAME = 'main';
 
-                // Mock getMajorBumpPackages
-                mockFsApi.readdirSync.mock.mockImplementationOnce(() => ['major-bump.md']);
-                mockFsApi.readFileSync.mock.mockImplementationOnce(() => '---\n"@scope/pkg-one": major\n---\n\nSummary.');
-
-                // Mock getPackageInfo
-                const pkgInfo = { version: '1.2.3', dirName: 'pkg-one' };
-                const packageJsonPath = path.join(process.cwd(), 'packages', 'pkg-one', 'package.json');
-                mockFsApi.existsSync.mock.mockImplementation((p) => p === packageJsonPath || p.endsWith('.changeset'));
-                mockFsApi.readFileSync.mock.mockImplementation((p) => {
-                    if (p.endsWith('major-bump.md')) return '---\n"@scope/pkg-one": major\n---\n\nSummary.';
-                    if (p === packageJsonPath) return JSON.stringify({ name: '@scope/pkg-one', version: '1.2.3' });
-                    return '';
-                });
+                const plan = {
+                    '@scope/pkg-one': {
+                        dirName: 'pkg-one',
+                        previousMajor: 1,
+                        branchName: 'release/pkg-one_v1',
+                    },
+                };
+                const planPath = path.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
+                mockFsApi.existsSync.mock.mockImplementation((p) => p === planPath);
+                mockFsApi.readFileSync.mock.mockImplementation(() => JSON.stringify(plan));
 
                 // Mock shell for branch check (not exists)
-                mockShell.mock.mockImplementationOnce(() => ''); // git ls-remote returns empty
+                mockShell.mock.mockImplementationOnce(() => ({ stdout: '' })); // git ls-remote returns empty
 
                 main(process.env, mockFsApi, process.cwd(), mockShell);
 
                 const calls = mockShell.mock.calls;
-                assert.strictEqual(calls.length, 4, 'Expected 4 shell commands'); // 1 ls-remote, 1 branch, 1 push, 1 publish
+                assert.strictEqual(calls.length, 4, 'Expected 4 shell commands'); // ls-remote, branch, push, publish
                 assert.strictEqual(calls[0].arguments[0], 'git ls-remote --heads origin release/pkg-one_v1');
-                assert.strictEqual(calls[1].arguments[0], 'git branch release/pkg-one_v1');
+                assert.strictEqual(calls[1].arguments[0], 'git branch release/pkg-one_v1 HEAD~1');
                 assert.strictEqual(calls[2].arguments[0], 'git push origin release/pkg-one_v1');
                 assert.strictEqual(calls[3].arguments[0], 'pnpm changeset publish');
             });
 
-            it('should create new release branches for multiple major bumps', () => {
+            it('should skip branch creation if branch already exists', () => {
                 process.env.ENABLE_MULTI_RELEASE = 'true';
                 process.env.GITHUB_REF_NAME = 'main';
 
-                mockFsApi.readdirSync.mock.mockImplementationOnce(() => ['major1.md', 'major2.md']);
-                mockFsApi.readFileSync.mock.mockImplementation((p) => {
-                    if (p.endsWith('major1.md')) return '---\n"@scope/pkg-one": major\n---\n\nSummary.';
-                    if (p.endsWith('major2.md')) return '---\n"@scope/pkg-two": major\n---\n\nSummary.';
-                    if (p.includes('pkg-one')) return JSON.stringify({ name: '@scope/pkg-one', version: '1.2.3' });
-                    if (p.includes('pkg-two')) return JSON.stringify({ name: '@scope/pkg-two', version: '4.5.6' });
-                    return '';
-                });
+                const plan = {
+                    '@scope/pkg-one': { branchName: 'release/pkg-one_v1' },
+                };
                 mockFsApi.existsSync.mock.mockImplementation(() => true);
-                mockShell.mock.mockImplementation(() => ''); // git ls-remote returns empty
+                mockFsApi.readFileSync.mock.mockImplementation(() => JSON.stringify(plan));
+
+                // Mock shell for branch check (exists)
+                mockShell.mock.mockImplementationOnce(() => ({ stdout: 'exists' }));
 
                 main(process.env, mockFsApi, process.cwd(), mockShell);
 
                 const calls = mockShell.mock.calls;
-                assert.strictEqual(calls.length, 7, 'Expected 7 shell commands'); // 2 * (ls-remote, branch, push) + 1 publish
+                assert.strictEqual(calls.length, 2, 'Expected 2 shell commands'); // ls-remote, publish
                 assert.strictEqual(calls[0].arguments[0], 'git ls-remote --heads origin release/pkg-one_v1');
-                assert.strictEqual(calls[1].arguments[0], 'git branch release/pkg-one_v1');
-                assert.strictEqual(calls[2].arguments[0], 'git push origin release/pkg-one_v1');
-                assert.strictEqual(calls[3].arguments[0], 'git ls-remote --heads origin release/pkg-two_v4');
-                assert.strictEqual(calls[4].arguments[0], 'git branch release/pkg-two_v4');
-                assert.strictEqual(calls[5].arguments[0], 'git push origin release/pkg-two_v4');
-                assert.strictEqual(calls[6].arguments[0], 'pnpm changeset publish');
-            });
-
-            it('should correctly parse various major bump formats from changesets', () => {
-                process.env.ENABLE_MULTI_RELEASE = 'true';
-                process.env.GITHUB_REF_NAME = 'main';
-
-                const complexChangesetContent = `
-                                        ---
-                                        "@scope/pkg-one": major
-                                        '@scope/pkg-two': major
-                                        "@scope/pkg-three" : major
-                                        "@scope/pkg-four":minor
-                                        "@scope/pkg-five": patch
-                                        ---
-
-                                        Summary for a complex changeset.
-                                                        `;
-
-                mockFsApi.readdirSync.mock.mockImplementationOnce(() => ['complex.md']);
-                mockFsApi.readFileSync.mock.mockImplementation((p) => {
-                    if (p.endsWith('complex.md')) return complexChangesetContent;
-                    if (p.includes('pkg-one')) return JSON.stringify({ name: '@scope/pkg-one', version: '1.0.0' });
-                    if (p.includes('pkg-three')) return JSON.stringify({ name: '@scope/pkg-three', version: '3.0.0' });
-                    return '';
-                });
-                mockFsApi.existsSync.mock.mockImplementation(() => true);
-                mockShell.mock.mockImplementation(() => ''); // git ls-remote returns empty
-
-                main(process.env, mockFsApi, process.cwd(), mockShell);
-
-                const calls = mockShell.mock.calls;
-                // Expects branches for pkg-one and pkg-three. It should ignore pkg-two (single quotes) as it's an invalid format.
-                assert.strictEqual(calls.length, 7, 'Expected 7 shell commands for 2 valid major bumps'); // 2 * (ls-remote, branch, push) + 1 publish
-                assert.ok(calls.some(c => c.arguments[0].includes('release/pkg-one_v1')));
-                assert.ok(calls.some(c => c.arguments[0].includes('release/pkg-three_v3')));
+                assert.strictEqual(calls[1].arguments[0], 'pnpm changeset publish');
             });
 
             it('should just publish when on a release branch', () => {
