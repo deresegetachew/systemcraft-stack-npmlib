@@ -4,6 +4,7 @@ import {
     loadChangesetFiles,
     getPackageInfo,
     runShellCommand,
+    exec,
     extractMajorBumpPackagesFromChangesets,
 } from '../utils/utils.js';
 
@@ -91,7 +92,7 @@ export function main(
     const plan = planMaintenanceBranches(fsApi, baseDir);
     writePlanFile(plan, fsApi, baseDir);
 
-    runShellCommand('pnpm changeset version', shell, { stdio: 'inherit' });
+    runShellCommand('pnpm changeset version', shell);
 
     console.log('✅ Version script completed successfully.');
 }
