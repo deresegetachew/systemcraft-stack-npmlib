@@ -78,7 +78,7 @@ function writePlanFile(plan, fsApi, baseDir) {
 export function main(
     fsApi = fs,
     baseDir = process.cwd(),
-    shell = runShellCommand
+    shell = exec
 ) {
     console.log('🚀 Starting version script...');
 
@@ -91,8 +91,7 @@ export function main(
     const plan = planMaintenanceBranches(fsApi, baseDir);
     writePlanFile(plan, fsApi, baseDir);
 
-    console.log('▶️ Running `pnpm changeset version`...');
-    shell('pnpm changeset version', { stdio: 'inherit' });
+    runShellCommand('pnpm changeset version', shell, { stdio: 'inherit' });
 
     console.log('✅ Version script completed successfully.');
 }
