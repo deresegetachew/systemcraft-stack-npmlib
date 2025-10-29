@@ -87,9 +87,12 @@ function planRelease(ctx, branchInfo, fsApi, baseDir) {
 
   if (majorBumpPackages.size === 0) {
     // No majors → normal publish.
+    console.log('ℹ️ No major version bumps detected.');
     steps.push({ type: 'exec', cmd: 'pnpm changeset publish' });
     return steps;
   }
+
+  console.log(`⚠️ Major version bumps detected for packages: ${Array.from(majorBumpPackages).join(', ')}`);
 
   for (const pkgName of majorBumpPackages) {
     const pkgInfo = getPackageInfo(pkgName, fsApi, baseDir);
