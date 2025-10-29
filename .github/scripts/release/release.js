@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { runShellCommand } from '../utils/utils.js';
+import { runShellCommand, exec } from '../utils/utils.js';
 
 function planRelease(ctx, branchInfo, fsApi, baseDir) {
   const { isMultiRelease } = ctx;
@@ -38,7 +38,7 @@ function executeSteps(steps, shell) {
       }
 
       case 'exec': {
-        shell(step.cmd, { stdio: 'inherit' });
+        runShellCommand(step.cmd, shell, { stdio: 'inherit' });
         break;
       }
 
@@ -47,14 +47,14 @@ function executeSteps(steps, shell) {
 
         console.log(`Checking for branch '${branchName}'...`);
 
-        const { stdout } = shell(`git ls-remote --heads origin ${branchName}`, { stdio: 'pipe' });
+        const { stdout } = runShellCommand(`git ls-remote --heads origin ${branchName}`, shell, { stdio: 'pipe' });
         const branchExists = stdout.trim() !== '';
 
         if (!branchExists) {
           console.log(`Creating '${branchName}'...`);
           // Create branch from the commit before the "Version Packages" merge commit
-          shell(`git branch ${branchName} HEAD~1`);
-          shell(`git push origin ${branchName}`);
+          runShellCommand(`git branch ${branchName} HEAD~1`, shell);
+          runShellCommand(`git push origin ${branchName}`, shell);
           console.log(`✅ Created and pushed '${branchName}' from previous commit.`);
         } else {
           console.log(`✅ Branch '${branchName}' already exists.`);
@@ -93,7 +93,7 @@ export function main(
   env = process.env,
   fsApi = fs,
   baseDir = process.cwd(),
-  shell = runShellCommand
+  shell = exec
 ) {
   console.log('🚀 Starting release script...');
 
