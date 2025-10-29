@@ -1,123 +1,33 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { loadChangesetFiles, getPackageInfo, runShellCommand } from '../utils/utils.js';
-
-
-function getReleaseContext(env) {
-  const isMultiRelease = env.ENABLE_MULTI_RELEASE === 'true';
-  const branchName = env.GITHUB_REF_NAME;
-
-  return {
-    isMultiRelease,
-    branchName,
-  };
-}
-
-
-function extractMajorBumpPackagesFromChangesets(changesetFiles) {
-  const majorBumpPackages = new Set();
-
-  for (const { content } of changesetFiles) {
-    const lines = content.split('\n');
-    for (const line of lines) {
-      if (line.includes(': major')) {
-        const match = line.match(/"([^\"]+)"\s*:\s*major/);
-        const packageName = match ? match[1] : null;
-        if (packageName) {
-          majorBumpPackages.add(packageName);
-        }
-      }
-    }
-  }
-
-  return majorBumpPackages;
-}
-
-
-function getMajorBumpPackages(fsApi, baseDir) {
-  const files = loadChangesetFiles(fsApi, baseDir);
-  if (files.length === 0) {
-    console.log('ℹ️ No changesets found.');
-    return new Set();
-  }
-  return extractMajorBumpPackagesFromChangesets(files);
-}
-
-
-function validatePreconditions(ctx, fsApi, baseDir) {
-  const { branchName } = ctx;
-
-  const isMainBranch = branchName === 'main';
-  const isReleaseBranch = Boolean(branchName && branchName.startsWith('release/'));
-
-  if (!isMainBranch && !isReleaseBranch) {
-    throw new Error(
-      `❌ Invalid branch: ${branchName}. Please use 'main' or 'release/*' branches when releasing`
-    );
-  }
-
-  const changesetsDir = path.resolve(baseDir, '.changeset');
-  if (!fsApi.existsSync(changesetsDir)) {
-    throw new Error(
-      '❌ .changeset directory does not exist. Make sure to run this script in the root of the repository where .changeset exists.'
-    );
-  }
-
-  return {
-    isMainBranch,
-    isReleaseBranch,
-  };
-}
-
+import { runShellCommand } from '../utils/utils.js';
 
 function planRelease(ctx, branchInfo, fsApi, baseDir) {
   const { isMultiRelease } = ctx;
 
   if (!isMultiRelease) {
-    return [{ type: 'exec', cmd: 'pnpm changeset publish' }];
+    return [{ type: 'exec', cmd: 'pnpm changeset publish' }]; // Single-release mode just publishes
   }
 
   if (!branchInfo.isMainBranch) {
-    return [{ type: 'exec', cmd: 'pnpm changeset publish' }];
+    return [{ type: 'exec', cmd: 'pnpm changeset publish' }]; // On a release branch, just publish
   }
 
   const steps = [];
+  const planFile = path.resolve(baseDir, '.release-meta', 'maintenance-branches.json');
 
-  const majorBumpPackages = getMajorBumpPackages(fsApi, baseDir);
-
-  if (majorBumpPackages.size === 0) {
-    // No majors → normal publish.
-    console.log('ℹ️ No major version bumps detected.');
-    steps.push({ type: 'exec', cmd: 'pnpm changeset publish' });
-    return steps;
-  }
-
-  console.log(`⚠️ Major version bumps detected for packages: ${Array.from(majorBumpPackages).join(', ')}`);
-
-  for (const pkgName of majorBumpPackages) {
-    const pkgInfo = getPackageInfo(pkgName, fsApi, baseDir);
-    if (!pkgInfo) {
-      steps.push({
-        type: 'log-warn',
-        msg: `Could not find package.json for ${pkgName}. Skipping maintenance branch creation.`,
-      });
-      continue;
+  if (fsApi.existsSync(planFile)) {
+    const plan = JSON.parse(fsApi.readFileSync(planFile, 'utf-8'));
+    for (const pkgName in plan) {
+      const { branchName } = plan[pkgName];
+      steps.push({ type: 'ensure-maintenance-branch', branchName });
     }
-
-    const currentMajor = pkgInfo.version.split('.')[0];
-    const branchNameForPkg = `release/${pkgInfo.dirName}_v${currentMajor}`;
-
-    steps.push({
-      type: 'ensure-maintenance-branch',
-      branchName: branchNameForPkg,
-    });
   }
 
   steps.push({ type: 'exec', cmd: 'pnpm changeset publish' });
 
   return steps;
 }
-
 
 function executeSteps(steps, shell) {
   for (const step of steps) {
@@ -128,7 +38,7 @@ function executeSteps(steps, shell) {
       }
 
       case 'exec': {
-        shell(step.cmd);
+        shell(step.cmd, { stdio: 'inherit' });
         break;
       }
 
@@ -137,18 +47,15 @@ function executeSteps(steps, shell) {
 
         console.log(`Checking for branch '${branchName}'...`);
 
-        const branchExists =
-          shell(`git ls-remote --heads origin ${branchName}`, {
-            stdio: 'pipe',
-          })
-            .toString()
-            .trim() !== '';
+        const { stdout } = shell(`git ls-remote --heads origin ${branchName}`, { stdio: 'pipe' });
+        const branchExists = stdout.trim() !== '';
 
         if (!branchExists) {
           console.log(`Creating '${branchName}'...`);
-          shell(`git branch ${branchName}`);
+          // Create branch from the commit before the "Version Packages" merge commit
+          shell(`git branch ${branchName} HEAD~1`);
           shell(`git push origin ${branchName}`);
-          console.log(`✅ Created and pushed '${branchName}'`);
+          console.log(`✅ Created and pushed '${branchName}' from previous commit.`);
         } else {
           console.log(`✅ Branch '${branchName}' already exists.`);
         }
@@ -161,6 +68,26 @@ function executeSteps(steps, shell) {
   }
 }
 
+function getReleaseContext(env) {
+  const isMultiRelease = env.ENABLE_MULTI_RELEASE === 'true';
+  const branchName = env.GITHUB_REF_NAME;
+
+  return {
+    isMultiRelease,
+    branchName,
+  };
+}
+
+function validatePreconditions(ctx) {
+  const { branchName } = ctx;
+  const isMainBranch = branchName === 'main';
+  const isReleaseBranch = Boolean(branchName && branchName.startsWith('release/'));
+
+  if (!isMainBranch && !isReleaseBranch) {
+    throw new Error(`❌ Invalid branch: ${branchName}. Please use 'main' or 'release/*' branches when releasing`);
+  }
+  return { isMainBranch, isReleaseBranch };
+}
 
 export function main(
   env = process.env,
@@ -171,7 +98,7 @@ export function main(
   console.log('🚀 Starting release script...');
 
   const ctx = getReleaseContext(env);
-  const branchInfo = validatePreconditions(ctx, fsApi, baseDir);
+  const branchInfo = validatePreconditions(ctx);
 
   console.log(`🔍 Current branch: ${ctx.branchName}`);
   console.log(`🔍 Multi-release mode: ${ctx.isMultiRelease}`);
