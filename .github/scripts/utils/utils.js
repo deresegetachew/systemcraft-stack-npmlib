@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 import process from 'node:process';
 
 
@@ -18,7 +19,6 @@ export async function exists(p) {
 
 export function exec(command, options = {}) {
     console.log(`> ${command}`);
-    const { execSync } = require('node:child_process');
     try {
         return execSync(command, { stdio: 'inherit', ...options });
     } catch (e) {
