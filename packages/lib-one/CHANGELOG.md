@@ -1,5 +1,17 @@
 # @systemcraft/lib-one
 
+## 2.0.1
+
+### Patch Changes
+
+- 5ba8632: testing release
+
+## 2.0.0
+
+### Major Changes
+
+- d3ddbe9: testing major release wfs
+
 ## 1.0.0
 
 ### Major Changes
