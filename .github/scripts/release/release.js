@@ -87,9 +87,12 @@ function planRelease(ctx, branchInfo, fsApi, baseDir) {
 
   if (majorBumpPackages.size === 0) {
     // No majors → normal publish.
+    console.log('ℹ️ No major version bumps detected.');
     steps.push({ type: 'exec', cmd: 'pnpm changeset publish' });
     return steps;
   }
+
+  console.log(`⚠️ Major version bumps detected for packages: ${Array.from(majorBumpPackages).join(', ')}`);
 
   for (const pkgName of majorBumpPackages) {
     const pkgInfo = getPackageInfo(pkgName, fsApi, baseDir);
@@ -125,7 +128,7 @@ function executeSteps(steps, shell) {
       }
 
       case 'exec': {
-        runShellCommand(step.cmd, shell);
+        shell(step.cmd);
         break;
       }
 
@@ -135,7 +138,7 @@ function executeSteps(steps, shell) {
         console.log(`Checking for branch '${branchName}'...`);
 
         const branchExists =
-          runShellCommand(`git ls-remote --heads origin ${branchName}`, shell, {
+          shell(`git ls-remote --heads origin ${branchName}`, {
             stdio: 'pipe',
           })
             .toString()
@@ -143,8 +146,8 @@ function executeSteps(steps, shell) {
 
         if (!branchExists) {
           console.log(`Creating '${branchName}'...`);
-          runShellCommand(`git branch ${branchName}`, shell);
-          runShellCommand(`git push origin ${branchName}`, shell);
+          shell(`git branch ${branchName}`);
+          shell(`git push origin ${branchName}`);
           console.log(`✅ Created and pushed '${branchName}'`);
         } else {
           console.log(`✅ Branch '${branchName}' already exists.`);
