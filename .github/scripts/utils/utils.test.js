@@ -1,7 +1,7 @@
 import { describe, it, mock, afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert';
-import path from 'node:path';
 import {
+    exec,
     extractMajorBumpPackagesFromChangesets,
     getPackageInfo,
     loadChangesetFiles,
@@ -9,8 +9,11 @@ import {
     runShellCommand,
 } from './utils.js';
 
+
 describe('utils.js', () => {
     let mockFsApi;
+    let mockCPApi;
+
 
     beforeEach(() => {
         mockFsApi = {
@@ -18,6 +21,10 @@ describe('utils.js', () => {
             readdirSync: mock.fn(),
             readFileSync: mock.fn(),
         };
+
+        mockCPApi = {
+            execSync: mock.fn()
+        }
     });
 
     afterEach(() => {
@@ -131,6 +138,64 @@ describe('utils.js', () => {
             assert.strictEqual(mockShellFn.mock.callCount(), 1);
             assert.strictEqual(mockShellFn.mock.calls[0].arguments[0], cmd);
             assert.deepStrictEqual(mockShellFn.mock.calls[0].arguments[1], options);
+        });
+    });
+
+    describe('exec()', () => {
+
+        it('should return an object with stdout when command succeeds', () => {
+            // -- Arrange
+            mockCPApi.execSync.mock.mockImplementationOnce(() => 'mocked output');
+
+            // -- Act
+            const result = exec('test command', {}, mockCPApi);
+
+            // -- Assert
+            assert.deepStrictEqual(result, { stdout: 'mocked output' },);
+            assert.strictEqual(mockCPApi.execSync.mock.callCount(), 1);
+            assert.strictEqual(mockCPApi.execSync.mock.calls[0].arguments[0], 'test command');
+        });
+
+        it('should return an object with empty stdout if command output is null/undefined', () => {
+            // -- Arrange
+            mockCPApi.execSync.mock.mockImplementationOnce(() => null);
+
+            // -- Act
+            const result = exec('test command without output', {}, mockCPApi);
+
+            // -- Assert
+            assert.deepStrictEqual(result, { stdout: '' });
+        });
+
+        it('should return an object with stdout when stdio is pipe (Buffer output)', () => {
+            // -- Arrange
+            mockCPApi.execSync.mock.mockImplementationOnce(() => Buffer.from('piped output')); // execSync returns Buffer for pipe
+
+            // -- Act
+            const result = exec('test command with pipe', { stdio: 'pipe' }, mockCPApi);
+
+            // -- Assert
+            assert.deepStrictEqual(result, { stdout: 'piped output' });
+            assert.strictEqual(mockCPApi.execSync.mock.callCount(), 1);
+            assert.deepStrictEqual(mockCPApi.execSync.mock.calls[0].arguments[1], { stdio: 'pipe' });
+        });
+
+        it('should exit process on command failure', () => {
+            // -- Arrange
+            // Temporarily replace the global process.exit with a mock function
+            const mockExit = mock.method(process, 'exit');
+            mockExit.mock.mockImplementation(() => {
+                // Do nothing instead of exiting
+            });
+
+            mockCPApi.execSync.mock.mockImplementationOnce(() => { throw new Error('Command failed'); });
+
+            // -- Act
+            exec('failing command', {}, mockCPApi);
+
+            // -- Assert
+            assert.strictEqual(mockExit.mock.callCount(), 1, 'process.exit should have been called once');
+            assert.strictEqual(mockExit.mock.calls[0].arguments[0], 1, 'process.exit should be called with code 1');
         });
     });
 });
