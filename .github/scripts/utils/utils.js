@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
+import * as cp from 'node:child_process';
 import process from 'node:process';
 
 
@@ -17,10 +17,14 @@ export async function exists(p) {
     }
 }
 
-export function exec(command, options = {}) {
+export function exec(command, options = {}, cpApi = cp) {
     console.log(`> ${command}`);
     try {
-        return execSync(command, { stdio: 'inherit', ...options });
+        const output = cpApi.execSync(command, { stdio: 'inherit', ...options });
+
+        if (output === null || output === undefined)
+            return { stdout: '' };
+        return { stdout: output.toString() };
     } catch (e) {
         console.error(`❌ Command failed: ${command}`);
         process.exit(1);
