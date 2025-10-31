@@ -2,21 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { runShellCommand, exec } from '../utils/utils.js';
 
-function planRelease(ctx, branchInfo, fsApi, baseDir) {
+const planFile = path.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
+
+
+function planRelease(ctx, branchInfo, fsApi) {
   const { isMultiRelease } = ctx;
-
-  if (!isMultiRelease) {
-    return [{ type: 'exec', cmd: 'pnpm changeset publish' }]; // Single-release mode just publishes
-  }
-
-  if (!branchInfo.isMainBranch) {
-    return [{ type: 'exec', cmd: 'pnpm changeset publish' }]; // On a release branch, just publish
-  }
-
   const steps = [];
-  const planFile = path.resolve(baseDir, '.release-meta', 'maintenance-branches.json');
 
-  if (fsApi.existsSync(planFile)) {
+  if (fsApi.existsSync(planFile) && isMultiRelease && branchInfo.isMainBranch) {
     const plan = JSON.parse(fsApi.readFileSync(planFile, 'utf-8'));
     for (const pkgName in plan) {
       const { branchName } = plan[pkgName];
@@ -24,7 +17,9 @@ function planRelease(ctx, branchInfo, fsApi, baseDir) {
     }
   }
 
+
   steps.push({ type: 'exec', cmd: 'pnpm changeset publish' });
+
 
   return steps;
 }
@@ -86,16 +81,22 @@ function validatePreconditions(ctx) {
   if (!isMainBranch && !isReleaseBranch) {
     throw new Error(`❌ Invalid branch: ${branchName}. Please use 'main' or 'release/*' branches when releasing`);
   }
+
   return { isMainBranch, isReleaseBranch };
 }
 
 export function main(
   env = process.env,
   fsApi = fs,
-  baseDir = process.cwd(),
   shell = exec
 ) {
   console.log('🚀 Starting release script...');
+
+  if (!fsApi.existsSync(planFile)) {
+    console.log('No maintenance branch plan found. Skipping release steps.');
+    return;
+  }
+
 
   const ctx = getReleaseContext(env);
   const branchInfo = validatePreconditions(ctx);
@@ -103,7 +104,7 @@ export function main(
   console.log(`🔍 Current branch: ${ctx.branchName}`);
   console.log(`🔍 Multi-release mode: ${ctx.isMultiRelease}`);
 
-  const steps = planRelease(ctx, branchInfo, fsApi, baseDir);
+  const steps = planRelease(ctx, branchInfo, fsApi);
 
   console.log('📝 Planned steps:', steps.map((s) => s.type).join(', '));
 
