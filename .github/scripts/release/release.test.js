@@ -19,6 +19,7 @@ describe('release.js', () => {
             readFileSync: mock.fn(() => ''),
         };
 
+
         mockShell = mock.fn(() => ({ stdout: '', stderr: '', code: 0 }));
     });
 
@@ -32,7 +33,7 @@ describe('release.js', () => {
             process.env.GITHUB_REF_NAME = 'feature';
 
             assert.throws(() => {
-                main(process.env, mockFsApi, process.cwd(), mockShell);
+                main(process.env, mockFsApi, mockShell);
             }, /❌ Invalid branch: feature/);
         });
 
@@ -41,7 +42,7 @@ describe('release.js', () => {
                 process.env.ENABLE_MULTI_RELEASE = 'false';
                 process.env.GITHUB_REF_NAME = 'main';
 
-                main(process.env, mockFsApi, process.cwd(), mockShell);
+                main(process.env, mockFsApi, mockShell);
 
                 assert.strictEqual(mockShell.mock.callCount(), 1);
                 assert.strictEqual(
@@ -49,25 +50,37 @@ describe('release.js', () => {
                     'pnpm changeset publish'
                 );
             });
+
+            it('should do nothing if no plan file is found', () => {
+                process.env.ENABLE_MULTI_RELEASE = 'false';
+                process.env.GITHUB_REF_NAME = 'main';
+
+                mockFsApi.existsSync.mock.mockImplementation(() => false);
+
+                console.log("mockShell.mock.callCount()", mockShell.mock.callCount())
+
+                main(process.env, mockFsApi, mockShell);
+
+                assert.strictEqual(mockShell.mock.callCount(), 0);
+            });
+
         });
 
         describe('multi-release mode', () => {
-            it('should just publish if no plan file is found', () => {
+            it('should do nothing if no plan file is found', () => {
                 process.env.ENABLE_MULTI_RELEASE = 'true';
                 process.env.GITHUB_REF_NAME = 'main';
 
                 mockFsApi.existsSync.mock.mockImplementation(() => false);
 
-                main(process.env, mockFsApi, process.cwd(), mockShell);
+                main(process.env, mockFsApi, mockShell);
 
-                assert.strictEqual(mockShell.mock.callCount(), 1);
-                assert.strictEqual(
-                    mockShell.mock.calls[0].arguments[0],
-                    'pnpm changeset publish'
-                );
+                assert.strictEqual(mockShell.mock.callCount(), 0);
+
             });
 
             it('should create a new release branch based on the plan file', () => {
+                // -- Arrange
                 process.env.ENABLE_MULTI_RELEASE = 'true';
                 process.env.GITHUB_REF_NAME = 'main';
 
@@ -85,8 +98,10 @@ describe('release.js', () => {
                 // Mock shell for branch check (not exists)
                 mockShell.mock.mockImplementationOnce(() => ({ stdout: '' })); // git ls-remote returns empty
 
-                main(process.env, mockFsApi, process.cwd(), mockShell);
+                // -- Act
+                main(process.env, mockFsApi, mockShell);
 
+                // -- Assert
                 const calls = mockShell.mock.calls;
                 assert.strictEqual(calls.length, 4, 'Expected 4 shell commands'); // ls-remote, branch, push, publish
                 assert.strictEqual(calls[0].arguments[0], 'git ls-remote --heads origin release/pkg-one_v1');
@@ -108,7 +123,7 @@ describe('release.js', () => {
                 // Mock shell for branch check (exists)
                 mockShell.mock.mockImplementationOnce(() => ({ stdout: 'exists' }));
 
-                main(process.env, mockFsApi, process.cwd(), mockShell);
+                main(process.env, mockFsApi, mockShell);
 
                 const calls = mockShell.mock.calls;
                 assert.strictEqual(calls.length, 2, 'Expected 2 shell commands'); // ls-remote, publish
@@ -120,7 +135,7 @@ describe('release.js', () => {
                 process.env.ENABLE_MULTI_RELEASE = 'true';
                 process.env.GITHUB_REF_NAME = 'release/some-feature';
 
-                main(process.env, mockFsApi, process.cwd(), mockShell);
+                main(process.env, mockFsApi, mockShell);
 
                 assert.strictEqual(mockShell.mock.callCount(), 1);
                 assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'pnpm changeset publish');
