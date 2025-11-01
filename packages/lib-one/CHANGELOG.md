@@ -1,5 +1,11 @@
 # @systemcraft/lib-one
 
+## 3.3.0
+
+### Minor Changes
+
+- bee4b5c: testing minor release
+
 ## 3.2.1
 
 ### Patch Changes
