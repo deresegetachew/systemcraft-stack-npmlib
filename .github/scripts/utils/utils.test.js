@@ -267,7 +267,7 @@ describe('utils.js', () => {
     });
 
     describe('getChangedFiles()', () => {
-        it('should return changed files from HEAD^1..HEAD command', async () => {
+        it('should return changed files from HEAD~1..HEAD command', async () => {
             // -- Arrange
             const mockShell = mock.fn();
             mockShell.mock.mockImplementationOnce(() => ({
@@ -284,7 +284,7 @@ describe('utils.js', () => {
                 'src/index.js'
             ]);
             assert.strictEqual(mockShell.mock.callCount(), 1);
-            assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'git diff --name-only HEAD^1..HEAD');
+            assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'git diff --name-only HEAD~1..HEAD');
         });
 
         it('should fallback to HEAD^..HEAD if first command fails', async () => {
