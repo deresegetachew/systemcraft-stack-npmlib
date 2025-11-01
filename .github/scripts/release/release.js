@@ -1,6 +1,5 @@
 import fs from 'node:fs';
-import path from 'node:path';
-import { runShellCommand, exec } from '../utils/utils.js';
+import { runShellCommand, getChangedFiles } from '../utils/utils.js';
 
 function planRelease(ctx, fsApi) {
   const { isMultiRelease, isMainBranch } = ctx;
@@ -77,36 +76,39 @@ function getReleaseContext(env) {
   };
 }
 
-function validatePreconditions(ctx, shell) {
+async function validatePreconditions(ctx, shell) {
   const { branchName, isMultiRelease, isReleaseBranch, isMainBranch } = ctx;
 
-  const latestCommitMessage = runShellCommand('git log -1 --pretty=%B', shell, { stdio: 'pipe' }).stdout.trim();
-  const latestCommitIsReleaseCommit = latestCommitMessage.includes('chore: update package versions and changelogs');
+  // Instead of checking commit messages, we check for file changes, which is more robust.
+  // A release commit from `changeset version` will always modify package.json and/or CHANGELOG.md files.
+  const changedFiles = await getChangedFiles(shell);
+  const latestChangesAreReleaseChanges = changedFiles.some(file => file.endsWith('package.json') || file.endsWith('CHANGELOG.md'));
 
   if (!isMainBranch && !isReleaseBranch && isMultiRelease) {
     console.warn(`Skipping release : on branch ${branchName}. for Multi-Release mode .`);
     return { proceedWithRelease: false };
   }
 
-  console.log(`Latest commit message: ${latestCommitMessage}`);
+  console.log(`Checking for release commit by inspecting changed files in HEAD...`);
 
-  if (latestCommitIsReleaseCommit) {
+  if (latestChangesAreReleaseChanges) {
+    console.log('✅ Versioning changes detected (package.json, CHANGELOG.md, or .changeset/ files modified). Proceeding with release.');
     return { proceedWithRelease: true };
   }
 
   return { proceedWithRelease: false }
 }
 
-export function main(
+export async function main(
   env = process.env,
   fsApi = fs,
-  shell = exec
+  shell = runShellCommand
 ) {
   console.log('🚀 Starting release script...');
 
   const ctx = getReleaseContext(env);
   const steps = [];
-  const { proceedWithRelease } = validatePreconditions(ctx, shell);
+  const { proceedWithRelease } = await validatePreconditions(ctx, shell);
 
   console.log(`🔍 Current branch: ${ctx.branchName}`);
   console.log(`🔍 Multi-release mode: ${ctx.isMultiRelease}`);
@@ -128,7 +130,7 @@ export function main(
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   try {
-    main();
+    await main();
   } catch (err) {
     // If the error is about skipping, it's not a failure.
     if (err.message.includes('Skipping release process')) {

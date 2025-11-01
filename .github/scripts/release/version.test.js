@@ -26,22 +26,28 @@ describe('version.js', () => {
 
     describe('main()', () => {
         it('should skip if no changesets are found', () => {
+            // -- Arrange
             mockFsApi.existsSync.mock.mockImplementation(() => true);
             mockFsApi.readdirSync.mock.mockImplementation(() => ['README.md']);
 
+            // -- Act
             main(mockFsApi, process.cwd(), mockShell);
 
-            assert.strictEqual(mockFsApi.writeFileSync.mock.callCount(), 0, 'Should not write plan file');
-            assert.strictEqual(mockShell.mock.callCount(), 0, 'Should not call changeset version');
+            // -- Assert
+            assert.strictEqual(mockFsApi.writeFileSync.mock.callCount(), 0);
+            assert.strictEqual(mockShell.mock.callCount(), 0);
         });
 
         it('should write an empty plan file if no major bumps are detected', () => {
+            // -- Arrange
             mockFsApi.existsSync.mock.mockImplementation(() => true);
             mockFsApi.readdirSync.mock.mockImplementation(() => ['minor-bump.md']);
             mockFsApi.readFileSync.mock.mockImplementation(() => '---\n"@scope/pkg-one": minor\n---\n\nSummary.');
 
+            // -- Act
             main(mockFsApi, process.cwd(), mockShell);
 
+            // -- Assert
             const planPath = path.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
             assert.strictEqual(mockFsApi.writeFileSync.mock.callCount(), 1);
             assert.strictEqual(mockFsApi.writeFileSync.mock.calls[0].arguments[0], planPath);
@@ -52,6 +58,7 @@ describe('version.js', () => {
         });
 
         it('should plan a maintenance branch for a single major bump', () => {
+            // -- Arrange
             mockFsApi.existsSync.mock.mockImplementation(() => true);
             mockFsApi.readdirSync.mock.mockImplementation(() => ['major-bump.md']);
             mockFsApi.readFileSync.mock.mockImplementation((p) => {
@@ -60,8 +67,10 @@ describe('version.js', () => {
                 return '';
             });
 
+            // -- Act
             main(mockFsApi, process.cwd(), mockShell);
 
+            // -- Assert
             const planPath = path.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
             assert.strictEqual(mockFsApi.writeFileSync.mock.callCount(), 1);
             assert.strictEqual(mockFsApi.writeFileSync.mock.calls[0].arguments[0], planPath);
