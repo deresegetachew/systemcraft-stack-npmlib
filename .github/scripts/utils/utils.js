@@ -89,8 +89,8 @@ export function extractMajorBumpPackagesFromChangesets(changesetFiles) {
 
 export function runShellCommand(cmd, shellFn, options = {}) {
     console.log(`▶ ${cmd}`);
-    // Use internal exec if no shell function provided
-    const actualShellFn = shellFn || exec;
+    // Use internal exec if no shell function provided or if it's not a function
+    const actualShellFn = (typeof shellFn === 'function') ? shellFn : exec;
     return actualShellFn(cmd, options);
 }
 
@@ -109,13 +109,16 @@ export async function getPackageName(pkgDir) {
     return path.basename(pkgDir);
 }
 
-export async function getChangedFiles(shell = runShellCommand) {
+export async function getChangedFiles(shell) {
+    // Default to using exec directly if no shell function provided
+    const actualShell = shell || ((cmd, options) => exec(cmd, options));
+
     try {
-        const result = shell('git diff --name-only HEAD^1..HEAD', { stdio: 'pipe' });
+        const result = actualShell('git diff --name-only HEAD^1..HEAD', { stdio: 'pipe' });
         return result.stdout.split('\n').filter(Boolean);
     } catch {
         try {
-            const result = shell('git diff --name-only HEAD^..HEAD', { stdio: 'pipe' });
+            const result = actualShell('git diff --name-only HEAD^..HEAD', { stdio: 'pipe' });
             return result.stdout.split('\n').filter(Boolean);
         } catch {
             return [];
