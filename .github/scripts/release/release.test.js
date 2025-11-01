@@ -1,204 +1,227 @@
 import { describe, it, mock, afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert';
-import { main } from './release.js';
+import { ReleaseService } from './services/release.service.js';
+import { GitUtil } from '../utils/git.util.js';
 
-
-describe('release.js', () => {
+describe('ReleaseService', () => {
     const planFilePath = '.release-meta/maintenance-branches.json';
     let mockFsApi;
-    let mockShell;
+    let mockShellService;
+    let mockGitService;
+    let releaseService;
     let originalEnv;
 
     beforeEach(() => {
         originalEnv = { ...process.env };
         process.env = { ...process.env };
 
+        // Mock filesystem
         mockFsApi = {
-            existsSync: mock.fn(() => false), // Default to plan file NOT existing
+            existsSync: mock.fn(() => false),
             readdirSync: mock.fn(() => []),
             readFileSync: mock.fn(() => ''),
             resolve: mock.fn(() => planFilePath)
         };
 
+        // Mock shell service
+        mockShellService = {
+            exec: mock.fn(() => ({ stdout: '' })),
+            run: mock.fn(() => ({ stdout: '' }))
+        };
 
-        mockShell = mock.fn((cmd) => {
-            if (cmd.startsWith('git log')) return { stdout: 'chore: update package versions and changelogs' };
-            return { stdout: '', stderr: '', code: 0 };
-        });
+        // Mock git service
+        mockGitService = {
+            getChangedFiles: mock.fn(() => Promise.resolve([])),
+            checkRemoteBranch: mock.fn(() => false),
+            createBranch: mock.fn(),
+            pushBranch: mock.fn()
+        };
+
+        // Create release service with mocked dependencies
+        releaseService = ReleaseService.create(mockShellService, mockFsApi);
+        // Override git service with mock
+        releaseService.git = mockGitService;
     });
 
     afterEach(() => {
         process.env = originalEnv;
-        mock.reset();
+        mock.restoreAll();
     });
 
     describe('main()', () => {
-        it('should skip release on a feature branch in multi-release mode', () => {
-            process.env.ENABLE_MULTI_RELEASE = 'true';
-            process.env.GITHUB_REF_NAME = 'feature';
-            // For this test, we don't care about the commit message, as it should exit before that.
-            mockShell.mock.mockImplementation(() => ({ stdout: 'feat: new feature' }));
-
-            main(process.env, mockFsApi, mockShell);
-
-            // Only one shell command should be run to check the commit message.
-            assert.strictEqual(mockShell.mock.callCount(), 1);
-            assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'git log -1 --pretty=%B');
-        });
-
-        it('should skip release if not a release commit', () => {
-            process.env.ENABLE_MULTI_RELEASE = 'true';
-            process.env.GITHUB_REF_NAME = 'main';
-
-            // Mock git log to return a non-release commit message
-            mockShell.mock.mockImplementation(() => ({ stdout: 'docs: update README' }));
-
-            main(process.env, mockFsApi, mockShell);
-
-            // The only call should be to `git log` to check the commit.
-            assert.strictEqual(mockShell.mock.callCount(), 1);
-            assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'git log -1 --pretty=%B');
-        });
-
         describe('single-release mode', () => {
-            it('should publish from main branch without creating maintenance branches', () => {
+            beforeEach(() => {
                 process.env.ENABLE_MULTI_RELEASE = 'false';
-                process.env.GITHUB_REF_NAME = 'main';
-
-                // Simulate that a plan file exists, but it should be ignored in single-release mode
-                mockFsApi.existsSync.mock.mockImplementation(() => true);
-                mockFsApi.readFileSync.mock.mockImplementation(() => JSON.stringify({ '@scope/pkg': { branchName: 'release/pkg_v1' } }));
-
-                main(process.env, mockFsApi, mockShell);
-
-                assert.strictEqual(mockShell.mock.callCount(), 2, 'Should only check commit and publish');
-                assert.strictEqual(mockShell.mock.calls[1].arguments[0], 'pnpm changeset publish');
             });
 
-            it('should not publish if commit message is not a release commit', () => {
-                process.env.ENABLE_MULTI_RELEASE = 'false';
+            it('should skip release if not a release commit', async () => {
+                // -- Arrange
                 process.env.GITHUB_REF_NAME = 'main';
+                mockGitService.getChangedFiles.mock.mockImplementation(() =>
+                    Promise.resolve(['src/feature.js', 'docs/README.md'])
+                );
 
-                // Mock git log to return a non-release commit message
-                mockShell.mock.mockImplementation(() => ({ stdout: 'feat: some new feature' }));
+                // -- Act
+                await releaseService.run(process.env);
 
-                main(process.env, mockFsApi, mockShell);
+                // -- Assert
+                assert.strictEqual(mockGitService.getChangedFiles.mock.callCount(), 1);
+                assert.strictEqual(mockShellService.run.mock.callCount(), 0, 'Should not execute any commands');
+            });
 
-                assert.strictEqual(mockShell.mock.callCount(), 1, 'Should only check commit message');
+            it('should publish from main branch without creating maintenance branches', async () => {
+                // -- Arrange
+                process.env.GITHUB_REF_NAME = 'main';
+                mockGitService.getChangedFiles.mock.mockImplementation(() =>
+                    Promise.resolve(['packages/lib-one/package.json', 'packages/lib-one/CHANGELOG.md'])
+                );
+
+                // -- Act
+                await releaseService.run(process.env);
+
+                // -- Assert
+                assert.strictEqual(mockGitService.getChangedFiles.mock.callCount(), 1);
+                // Should call publish command
+                const publishCall = mockShellService.run.mock.calls.find(call =>
+                    call.arguments[0].includes('changeset publish')
+                );
+                assert.ok(publishCall, 'Should call changeset publish');
+            });
+
+            it('should not publish if commit message is not a release commit', async () => {
+                // -- Arrange
+                process.env.GITHUB_REF_NAME = 'main';
+                mockGitService.getChangedFiles.mock.mockImplementation(() =>
+                    Promise.resolve(['src/feature.js', 'docs/README.md'])
+                );
+
+                // -- Act
+                await releaseService.run(process.env);
+
+                // -- Assert
+                assert.strictEqual(mockGitService.getChangedFiles.mock.callCount(), 1);
+                // Should not call publish
+                const publishCall = mockShellService.run.mock.calls.find(call =>
+                    call.arguments[0].includes('changeset publish')
+                );
+                assert.ok(!publishCall, 'Should not call changeset publish');
             });
         });
 
         describe('multi-release mode', () => {
-
-            it('should be able publish from a main branch for a valid release commit without a plan file', () => {
+            beforeEach(() => {
                 process.env.ENABLE_MULTI_RELEASE = 'true';
+            });
+
+            it('should skip release if not a release commit', async () => {
+                // -- Arrange
                 process.env.GITHUB_REF_NAME = 'main';
-                mockFsApi.existsSync.mock.mockImplementation(() => false); // No plan file exists
+                mockGitService.getChangedFiles.mock.mockImplementation(() =>
+                    Promise.resolve(['src/feature.js', 'docs/README.md'])
+                );
 
-                main(process.env, mockFsApi, mockShell);
+                // -- Act
+                await releaseService.run(process.env);
 
-                // On main branch with no plan file, it should check the commit and then publish.
-                assert.strictEqual(mockShell.mock.callCount(), 2);
-                assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'git log -1 --pretty=%B');
-                assert.strictEqual(mockShell.mock.calls[1].arguments[0], 'pnpm changeset publish');
+                // -- Assert
+                assert.strictEqual(mockGitService.getChangedFiles.mock.callCount(), 1);
+                assert.strictEqual(mockShellService.run.mock.callCount(), 0);
             });
 
+            it('should skip release on a feature branch in multi-release mode', async () => {
+                // -- Arrange
+                process.env.GITHUB_REF_NAME = 'feature/test';
 
-            it('should be able publish from a main branch for a valid release commit with an empty plan file', () => {
-                process.env.ENABLE_MULTI_RELEASE = 'true';
+                // -- Act
+                await releaseService.run(process.env);
+
+                // -- Assert
+                // Should not even check changed files
+                assert.strictEqual(mockGitService.getChangedFiles.mock.callCount(), 0);
+                assert.strictEqual(mockShellService.run.mock.callCount(), 0);
+            });
+
+            it('should be able publish from a main branch for a valid release commit without a plan file', async () => {
+                // -- Arrange
                 process.env.GITHUB_REF_NAME = 'main';
-                mockFsApi.existsSync.mock.mockImplementation(() => true); // Plan file exists
-                mockFsApi.readFileSync.mock.mockImplementation(() => JSON.stringify({})); // Empty plan file
+                mockGitService.getChangedFiles.mock.mockImplementation(() =>
+                    Promise.resolve(['packages/lib-one/package.json', 'packages/lib-one/CHANGELOG.md'])
+                );
 
-                main(process.env, mockFsApi, mockShell);
+                // -- Act
+                await releaseService.run(process.env);
 
-                // On main branch with empty plan file, it should check the commit and then publish.
-                assert.strictEqual(mockShell.mock.callCount(), 2);
-                assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'git log -1 --pretty=%B');
-                assert.strictEqual(mockShell.mock.calls[1].arguments[0], 'pnpm changeset publish');
+                // -- Assert
+                assert.strictEqual(mockGitService.getChangedFiles.mock.callCount(), 1);
+                const publishCall = mockShellService.run.mock.calls.find(call =>
+                    call.arguments[0].includes('changeset publish')
+                );
+                assert.ok(publishCall, 'Should call changeset publish');
             });
 
-            it('should publish directly from main if no maintenance branch plan exists', () => {
-                process.env.ENABLE_MULTI_RELEASE = 'true';
+            it('should create a new release branch based on the plan file', async () => {
+                // -- Arrange
                 process.env.GITHUB_REF_NAME = 'main';
+                mockFsApi.existsSync.mock.mockImplementation(() => true);
+                mockFsApi.readFileSync.mock.mockImplementation(() =>
+                    JSON.stringify({
+                        '@scope/lib-one': { branchName: 'release/lib-one@1.0.0' }
+                    })
+                );
+                mockGitService.getChangedFiles.mock.mockImplementation(() =>
+                    Promise.resolve(['packages/lib-one/package.json'])
+                );
+                mockGitService.checkRemoteBranch.mock.mockImplementation(() => false);
 
-                mockFsApi.existsSync.mock.mockImplementation(() => false); // No plan file exists
+                // -- Act
+                await releaseService.run(process.env);
 
-                main(process.env, mockFsApi, mockShell);
-
-                assert.strictEqual(mockShell.mock.calls.length, 2); // git log + publish
-                assert.strictEqual(mockShell.mock.calls[1].arguments[0], 'pnpm changeset publish');
+                // -- Assert
+                assert.strictEqual(mockGitService.checkRemoteBranch.mock.callCount(), 1);
+                assert.strictEqual(mockGitService.createBranch.mock.callCount(), 1);
+                assert.strictEqual(mockGitService.pushBranch.mock.callCount(), 1);
             });
 
-            it('should create a new release branch based on the plan file', () => {
-                process.env.ENABLE_MULTI_RELEASE = 'true';
+            it('should skip branch creation if branch already exists', async () => {
+                // -- Arrange
                 process.env.GITHUB_REF_NAME = 'main';
+                mockFsApi.existsSync.mock.mockImplementation(() => true);
+                mockFsApi.readFileSync.mock.mockImplementation(() =>
+                    JSON.stringify({
+                        '@scope/lib-one': { branchName: 'release/lib-one@1.0.0' }
+                    })
+                );
+                mockGitService.getChangedFiles.mock.mockImplementation(() =>
+                    Promise.resolve(['packages/lib-one/package.json'])
+                );
+                mockGitService.checkRemoteBranch.mock.mockImplementation(() => true);
 
-                const plan = {
-                    '@scope/pkg-one': {
-                        dirName: 'pkg-one',
-                        previousMajor: 1,
-                        branchName: 'release/pkg-one_v1',
-                    },
-                };
-                mockFsApi.existsSync.mock.mockImplementation((p) => true);
-                mockFsApi.readFileSync.mock.mockImplementation(() => JSON.stringify(plan));
+                // -- Act
+                await releaseService.run(process.env);
 
-                // Mock shell for branch check (not exists)
-                mockShell.mock.mockImplementation((cmd) => {
-                    if (cmd.startsWith('git log')) return { stdout: 'chore: update package versions and changelogs' };
-                    if (cmd.startsWith('git ls-remote')) return { stdout: '' }; // branch does not exist
-                    return { stdout: '' };
-                });
-
-                main(process.env, mockFsApi, mockShell);
-
-                const calls = mockShell.mock.calls;
-                assert.strictEqual(calls.length, 5, 'Expected 5 shell commands'); // log, ls-remote, branch, push, publish
-                assert.strictEqual(calls[1].arguments[0], 'git ls-remote --heads origin release/pkg-one_v1');
-                assert.strictEqual(calls[2].arguments[0], 'git branch release/pkg-one_v1 HEAD~1');
-                assert.strictEqual(calls[3].arguments[0], 'git push origin release/pkg-one_v1');
-                assert.strictEqual(calls[4].arguments[0], 'pnpm changeset publish');
+                // -- Assert
+                assert.strictEqual(mockGitService.checkRemoteBranch.mock.callCount(), 1);
+                assert.strictEqual(mockGitService.createBranch.mock.callCount(), 0, 'Should not create branch');
+                assert.strictEqual(mockGitService.pushBranch.mock.callCount(), 0, 'Should not push branch');
             });
 
-            it('should skip branch creation if branch already exists', () => {
-                process.env.ENABLE_MULTI_RELEASE = 'true';
-                process.env.GITHUB_REF_NAME = 'main';
+            it('should be able to publish from a release branch for a valid release commit', async () => {
+                // -- Arrange
+                process.env.GITHUB_REF_NAME = 'release/lib-one@1.0.0';
+                mockGitService.getChangedFiles.mock.mockImplementation(() =>
+                    Promise.resolve(['packages/lib-one/package.json'])
+                );
 
-                const plan = {
-                    '@scope/pkg-one': { branchName: 'release/pkg-one_v1' },
-                };
-                mockFsApi.existsSync.mock.mockImplementation((p) => true);
-                mockFsApi.readFileSync.mock.mockImplementation(() => JSON.stringify(plan));
+                // -- Act
+                await releaseService.run(process.env);
 
-                // Mock shell for branch check (exists)
-                mockShell.mock.mockImplementation((cmd) => {
-                    if (cmd.startsWith('git log')) return { stdout: 'chore: update package versions and changelogs' };
-                    if (cmd.startsWith('git ls-remote')) return { stdout: 'exists' }; // branch exists
-                    return { stdout: '' };
-                });
-
-                main(process.env, mockFsApi, mockShell);
-
-                const calls = mockShell.mock.calls;
-                assert.strictEqual(calls.length, 3, 'Expected 3 shell commands'); // log, ls-remote, publish
-                assert.strictEqual(calls[1].arguments[0], 'git ls-remote --heads origin release/pkg-one_v1');
-                assert.strictEqual(calls[2].arguments[0], 'pnpm changeset publish');
+                // -- Assert
+                assert.strictEqual(mockGitService.getChangedFiles.mock.callCount(), 1);
+                const publishCall = mockShellService.run.mock.calls.find(call =>
+                    call.arguments[0].includes('changeset publish')
+                );
+                assert.ok(publishCall, 'Should call changeset publish');
             });
-
-            it('should be able to publish from a release branch for a valid release commit', () => {
-                process.env.ENABLE_MULTI_RELEASE = 'true';
-                process.env.GITHUB_REF_NAME = 'release/some-feature';
-
-                main(process.env, mockFsApi, mockShell);
-
-                // On a release branch, it should check the commit and then publish.
-                // No maintenance branches are created.
-                assert.strictEqual(mockShell.mock.callCount(), 2);
-                assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'git log -1 --pretty=%B');
-                assert.strictEqual(mockShell.mock.calls[1].arguments[0], 'pnpm changeset publish');
-            });
-
         });
     });
 });
