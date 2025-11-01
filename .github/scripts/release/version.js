@@ -1,3 +1,5 @@
+/**This file will run if there are changesets to process */
+
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -8,11 +10,7 @@ import {
     extractMajorBumpPackagesFromChangesets,
 } from '../utils/utils.js';
 
-/**
- * @param {import('../utils/utils.js').FsApi} fsApi
- * @param {string} baseDir
- * @returns {Set<string>}
- */
+
 function getMajorBumpPackages(fsApi, baseDir) {
     const files = loadChangesetFiles(fsApi, baseDir);
     if (files.length === 0) {
@@ -22,11 +20,7 @@ function getMajorBumpPackages(fsApi, baseDir) {
     return extractMajorBumpPackagesFromChangesets(files);
 }
 
-/**
- * @param {import('../utils/utils.js').FsApi} fsApi
- * @param {string} baseDir
- * @returns {Record<string, {dirName: string, previousMajor: number, branchName: string}>}
- */
+
 function planMaintenanceBranches(fsApi, baseDir) {
     const majorBumpPackages = getMajorBumpPackages(fsApi, baseDir);
     const branchPlan = {};
@@ -60,11 +54,7 @@ function planMaintenanceBranches(fsApi, baseDir) {
     return branchPlan;
 }
 
-/**
- * @param {Record<string, any>} plan
- * @param {import('../utils/utils.js').FsApi} fsApi
- * @param {string} baseDir
- */
+
 function writePlanFile(plan, fsApi, baseDir) {
     const metaDir = path.resolve(baseDir, '.release-meta');
     if (!fsApi.existsSync(metaDir)) {
