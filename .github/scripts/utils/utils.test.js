@@ -1,13 +1,13 @@
 import { describe, it, mock, afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert';
 import {
-    exec,
     extractMajorBumpPackagesFromChangesets,
     getPackageInfo,
     getChangedFiles,
     loadChangesetFiles,
     sanitizePackageDir,
     runShellCommand,
+    __testExec as exec,
 } from './utils.js';
 
 
@@ -245,6 +245,24 @@ describe('utils.js', () => {
             // -- Assert
             assert.strictEqual(mockExit.mock.callCount(), 1, 'process.exit should have been called once');
             assert.strictEqual(mockExit.mock.calls[0].arguments[0], 1, 'process.exit should be called with code 1');
+        });
+
+        it('should throw error instead of exiting when stdio is pipe', () => {
+            // -- Arrange
+            const mockExit = mock.method(process, 'exit');
+            mockExit.mock.mockImplementation(() => {
+                // Do nothing instead of exiting
+            });
+
+            mockCPApi.execSync.mock.mockImplementationOnce(() => { throw new Error('Command failed'); });
+
+            // -- Act & Assert
+            assert.throws(() => {
+                exec('failing command', { stdio: 'pipe' }, mockCPApi);
+            }, /Command failed/);
+
+            // Should not call process.exit when stdio is pipe
+            assert.strictEqual(mockExit.mock.callCount(), 0, 'process.exit should not be called when stdio is pipe');
         });
     });
 

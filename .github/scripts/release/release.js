@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { runShellCommand, exec, getChangedFiles } from '../utils/utils.js';
+import { runShellCommand, getChangedFiles } from '../utils/utils.js';
 
 function planRelease(ctx, fsApi) {
   const { isMultiRelease, isMainBranch } = ctx;

@@ -6,7 +6,6 @@ import {
     loadChangesetFiles,
     getPackageInfo,
     runShellCommand,
-    exec,
     extractMajorBumpPackagesFromChangesets,
 } from '../utils/utils.js';
 
