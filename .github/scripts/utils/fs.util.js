@@ -1,10 +1,15 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-export class FsUtil {
+export class FSUtil {
     constructor(fsApi = fs) {
         this.fs = fsApi;
     }
+
+    static create(fsApi) {
+        return new FSUtil(fsApi);
+    }
+
 
     async ensureDir(dirPath) {
         await this.fs.mkdir(dirPath, { recursive: true });

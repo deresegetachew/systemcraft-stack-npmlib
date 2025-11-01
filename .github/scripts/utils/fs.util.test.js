@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
-import { FsUtil } from './fs.util.js';
+import { FSUtil } from './fs.util.js';
 
 describe('FsUtil', () => {
     let mockFs;
@@ -12,7 +12,7 @@ describe('FsUtil', () => {
             access: async () => { },
             readFile: async () => '{\"name\": \"test-package\"}'
         };
-        fsUtil = new FsUtil(mockFs);
+        fsUtil = new FSUtil(mockFs);
     });
 
     describe('ensureDir()', () => {
