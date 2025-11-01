@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import { runShellCommand, getChangedFiles } from '../utils/utils.js';
 
 function planRelease(ctx, fsApi) {
@@ -103,7 +102,7 @@ async function validatePreconditions(ctx, shell) {
 export async function main(
   env = process.env,
   fsApi = fs,
-  shell = exec
+  shell = runShellCommand
 ) {
   console.log('🚀 Starting release script...');
 
