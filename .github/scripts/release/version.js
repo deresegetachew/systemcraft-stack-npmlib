@@ -1,3 +1,5 @@
+/**This file will run if there are changesets to process */
+
 import fs from 'node:fs';
 import path from 'node:path';
 import {
