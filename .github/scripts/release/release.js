@@ -111,9 +111,12 @@ export function main(
 
   console.log('📝 Planned steps:', steps.map((s) => s.type).join(', '));
 
-  executeSteps(steps, shell);
-
-  console.log('✅ Release process completed successfully.');
+  if (steps.length === 0)
+    console.log('ℹ️ Skipping release process: No steps to execute.');
+  else {
+    executeSteps(steps, shell);
+    console.log('✅ Release process completed successfully.');
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
