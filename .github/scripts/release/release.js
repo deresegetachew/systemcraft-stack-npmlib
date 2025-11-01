@@ -2,14 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { runShellCommand, exec } from '../utils/utils.js';
 
-const planFile = path.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
-
-
-function planRelease(ctx, branchInfo, fsApi) {
-  const { isMultiRelease } = ctx;
+function planRelease(ctx, fsApi) {
+  const { isMultiRelease, isMainBranch } = ctx;
   const steps = [];
+  const planFile = path.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
 
-  if (fsApi.existsSync(planFile) && isMultiRelease && branchInfo.isMainBranch) {
+  if (fsApi.existsSync(planFile) && isMultiRelease && isMainBranch) {
     const plan = JSON.parse(fsApi.readFileSync(planFile, 'utf-8'));
     for (const pkgName in plan) {
       const { branchName } = plan[pkgName];
@@ -17,9 +15,7 @@ function planRelease(ctx, branchInfo, fsApi) {
     }
   }
 
-
   steps.push({ type: 'exec', cmd: 'pnpm changeset publish' });
-
 
   return steps;
 }
@@ -66,23 +62,33 @@ function executeSteps(steps, shell) {
 function getReleaseContext(env) {
   const isMultiRelease = env.ENABLE_MULTI_RELEASE === 'true';
   const branchName = env.GITHUB_REF_NAME;
+  const isReleaseBranch = Boolean(branchName && branchName.startsWith('release/'));
+  const isMainBranch = branchName === 'main';
+
 
   return {
     isMultiRelease,
     branchName,
+    isReleaseBranch,
+    isMainBranch
   };
 }
 
-function validatePreconditions(ctx) {
-  const { branchName } = ctx;
-  const isMainBranch = branchName === 'main';
-  const isReleaseBranch = Boolean(branchName && branchName.startsWith('release/'));
+function validatePreconditions(ctx, shell) {
+  const { branchName, isMultiRelease, isReleaseBranch, isMainBranch } = ctx;
+  const latestCommitMessage = runShellCommand('git log -1 --pretty=%B', shell, { stdio: 'pipe' }).stdout.trim();
+  const latestCommitIsReleaseCommit = latestCommitMessage.includes('chore: update package versions and changelogs');
 
-  if (!isMainBranch && !isReleaseBranch) {
-    throw new Error(`❌ Invalid branch: ${branchName}. Please use 'main' or 'release/*' branches when releasing`);
+  if (!isMainBranch && !isReleaseBranch && isMultiRelease) {
+    console.warn(`Skipping release : on branch ${branchName}. for Multi-Release mode .`);
+    return { proceedWithRelease: false };
   }
 
-  return { isMainBranch, isReleaseBranch };
+  if (latestCommitIsReleaseCommit) {
+    return { proceedWithRelease: true };
+  }
+
+  return { proceedWithRelease: false }
 }
 
 export function main(
@@ -92,19 +98,16 @@ export function main(
 ) {
   console.log('🚀 Starting release script...');
 
-  if (!fsApi.existsSync(planFile)) {
-    console.log('No maintenance branch plan found. Skipping release steps.');
-    return;
-  }
-
-
   const ctx = getReleaseContext(env);
-  const branchInfo = validatePreconditions(ctx);
+  const steps = [];
+  const { proceedWithRelease } = validatePreconditions(ctx, shell);
 
   console.log(`🔍 Current branch: ${ctx.branchName}`);
   console.log(`🔍 Multi-release mode: ${ctx.isMultiRelease}`);
 
-  const steps = planRelease(ctx, branchInfo, fsApi);
+  if (proceedWithRelease) {
+    steps.push(...planRelease(ctx, fsApi));
+  }
 
   console.log('📝 Planned steps:', steps.map((s) => s.type).join(', '));
 
@@ -117,7 +120,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     main();
   } catch (err) {
-    console.error(err.message);
-    process.exit(1);
+    // If the error is about skipping, it's not a failure.
+    if (err.message.includes('Skipping release process')) {
+      console.log(`✅ ${err.message}`);
+      process.exit(0);
+    } else {
+      console.error(err.message);
+      process.exit(1);
+    }
   }
 }
