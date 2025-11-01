@@ -1,11 +1,10 @@
 import { describe, it, mock, afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert';
-import path from 'node:path';
 import { main } from './release.js';
 
 
 describe('release.js', () => {
-    const planFile = path.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
+    const planFilePath = '.release-meta/maintenance-branches.json';
     let mockFsApi;
     let mockShell;
     let originalEnv;
@@ -18,6 +17,7 @@ describe('release.js', () => {
             existsSync: mock.fn(() => false), // Default to plan file NOT existing
             readdirSync: mock.fn(() => []),
             readFileSync: mock.fn(() => ''),
+            resolve: mock.fn(() => planFilePath)
         };
 
 
@@ -90,7 +90,35 @@ describe('release.js', () => {
 
         describe('multi-release mode', () => {
 
-            it('should publish with no maintenance branches if plan file is empty/missing', () => {
+            it('should be able publish from a main branch for a valid release commit without a plan file', () => {
+                process.env.ENABLE_MULTI_RELEASE = 'true';
+                process.env.GITHUB_REF_NAME = 'main';
+                mockFsApi.existsSync.mock.mockImplementation(() => false); // No plan file exists
+
+                main(process.env, mockFsApi, mockShell);
+
+                // On main branch with no plan file, it should check the commit and then publish.
+                assert.strictEqual(mockShell.mock.callCount(), 2);
+                assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'git log -1 --pretty=%B');
+                assert.strictEqual(mockShell.mock.calls[1].arguments[0], 'pnpm changeset publish');
+            });
+
+
+            it('should be able publish from a main branch for a valid release commit with an empty plan file', () => {
+                process.env.ENABLE_MULTI_RELEASE = 'true';
+                process.env.GITHUB_REF_NAME = 'main';
+                mockFsApi.existsSync.mock.mockImplementation(() => true); // Plan file exists
+                mockFsApi.readFileSync.mock.mockImplementation(() => JSON.stringify({})); // Empty plan file
+
+                main(process.env, mockFsApi, mockShell);
+
+                // On main branch with empty plan file, it should check the commit and then publish.
+                assert.strictEqual(mockShell.mock.callCount(), 2);
+                assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'git log -1 --pretty=%B');
+                assert.strictEqual(mockShell.mock.calls[1].arguments[0], 'pnpm changeset publish');
+            });
+
+            it('should publish directly from main if no maintenance branch plan exists', () => {
                 process.env.ENABLE_MULTI_RELEASE = 'true';
                 process.env.GITHUB_REF_NAME = 'main';
 
@@ -113,7 +141,7 @@ describe('release.js', () => {
                         branchName: 'release/pkg-one_v1',
                     },
                 };
-                mockFsApi.existsSync.mock.mockImplementation((p) => p === planFile);
+                mockFsApi.existsSync.mock.mockImplementation((p) => true);
                 mockFsApi.readFileSync.mock.mockImplementation(() => JSON.stringify(plan));
 
                 // Mock shell for branch check (not exists)
@@ -140,7 +168,7 @@ describe('release.js', () => {
                 const plan = {
                     '@scope/pkg-one': { branchName: 'release/pkg-one_v1' },
                 };
-                mockFsApi.existsSync.mock.mockImplementation((p) => p === planFile);
+                mockFsApi.existsSync.mock.mockImplementation((p) => true);
                 mockFsApi.readFileSync.mock.mockImplementation(() => JSON.stringify(plan));
 
                 // Mock shell for branch check (exists)
@@ -158,7 +186,7 @@ describe('release.js', () => {
                 assert.strictEqual(calls[2].arguments[0], 'pnpm changeset publish');
             });
 
-            it('should only publish when on a release branch', () => {
+            it('should be able to publish from a release branch for a valid release commit', () => {
                 process.env.ENABLE_MULTI_RELEASE = 'true';
                 process.env.GITHUB_REF_NAME = 'release/some-feature';
 
@@ -171,20 +199,6 @@ describe('release.js', () => {
                 assert.strictEqual(mockShell.mock.calls[1].arguments[0], 'pnpm changeset publish');
             });
 
-            it('should ignore plan file when on a release branch', () => {
-                process.env.ENABLE_MULTI_RELEASE = 'true';
-                process.env.GITHUB_REF_NAME = 'release/some-feature';
-
-                // Simulate that a plan file exists
-                mockFsApi.existsSync.mock.mockImplementation(() => true);
-                mockFsApi.readFileSync.mock.mockImplementation(() => JSON.stringify({ '@scope/pkg': { branchName: 'release/pkg_v1' } }));
-
-                main(process.env, mockFsApi, mockShell);
-
-                // Should only check commit and publish, not read the plan or create branches.
-                assert.strictEqual(mockShell.mock.callCount(), 2);
-                assert.strictEqual(mockShell.mock.calls[1].arguments[0], 'pnpm changeset publish');
-            });
         });
     });
 });

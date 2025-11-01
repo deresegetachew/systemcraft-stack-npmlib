@@ -5,10 +5,11 @@ import { runShellCommand, exec } from '../utils/utils.js';
 function planRelease(ctx, fsApi) {
   const { isMultiRelease, isMainBranch } = ctx;
   const steps = [];
-  const planFile = path.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
+  const planFilePath = fsApi.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
+  const planFileExists = fsApi.existsSync(planFilePath);
+  const plan = planFileExists ? JSON.parse(fsApi.readFileSync(planFilePath, 'utf-8')) : {};
 
-  if (fsApi.existsSync(planFile) && isMultiRelease && isMainBranch) {
-    const plan = JSON.parse(fsApi.readFileSync(planFile, 'utf-8'));
+  if (Object.getOwnPropertyNames(plan).length > 0 && isMultiRelease && isMainBranch) {
     for (const pkgName in plan) {
       const { branchName } = plan[pkgName];
       steps.push({ type: 'ensure-maintenance-branch', branchName });
@@ -76,6 +77,7 @@ function getReleaseContext(env) {
 
 function validatePreconditions(ctx, shell) {
   const { branchName, isMultiRelease, isReleaseBranch, isMainBranch } = ctx;
+
   const latestCommitMessage = runShellCommand('git log -1 --pretty=%B', shell, { stdio: 'pipe' }).stdout.trim();
   const latestCommitIsReleaseCommit = latestCommitMessage.includes('chore: update package versions and changelogs');
 
