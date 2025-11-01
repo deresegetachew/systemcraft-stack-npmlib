@@ -10,7 +10,6 @@ export class FSUtil {
         return new FSUtil(fsApi);
     }
 
-
     async ensureDir(dirPath) {
         await this.fs.mkdir(dirPath, { recursive: true });
     }

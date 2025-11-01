@@ -7,7 +7,7 @@ import os from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { extractTotals } from "../coverage.util";
-import FSUtil from "../../utils/fs.util";
+import { FSUtil } from "../../utils/fs.util";
 
 
 const execFileAsync = promisify(execFile);

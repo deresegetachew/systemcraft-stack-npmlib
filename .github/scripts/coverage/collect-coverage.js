@@ -4,12 +4,12 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { walkAndFindCoverage, extractTotals } from "./coverage.util.js";
-import { BaselineCoverageService } from "./services/baseline-coverage-service.js";
-import { CoverageDiffFormatter } from "./coverage-diff-formatter.js";
-import { CoverageReporter } from "./report-coverage.js";
-import { exists, ensureDir, getPackageName } from "../utils/fs.util.js";
-import { sanitizePackageDir } from "../utils/package.util.js";
+import { walkAndFindCoverage, extractTotals } from "./coverage.util";
+import { BaselineCoverageService } from "./services/baseline-coverage-service";
+import { CoverageDiffFormatter } from "./coverage-diff-formatter";
+import { CoverageReporter } from "./report-coverage";
+import { FSUtil } from "../utils/fs.util";
+import { sanitizePackageDir } from "../utils/package.util";
 
 
 
@@ -20,10 +20,11 @@ class CoverageCollector {
         const outDir = options.outDir ?? process.env.OUT_DIR ?? "coverage-artifacts";
         this.outRoot = path.isAbsolute(outDir) ? outDir : path.join(this.repoRoot, outDir);
         this.coverageFileName = options.coverageFileName ?? process.env.COVERAGE_FILE_NAME ?? "coverage-summary.json";
+        this.fsUtil = new FSUtil();
     }
 
     async run() {
-        await ensureDir(this.outRoot);
+        await this.fsUtil.ensureDir(this.outRoot);
 
         const rows = [];
         let count = 0;
@@ -37,20 +38,20 @@ class CoverageCollector {
         for await (const coveragePath of walkAndFindCoverage(this.packagesRoot, this.coverageFileName)) {
             const coverageDir = path.dirname(coveragePath);
             const pkgDir = path.dirname(path.dirname(coveragePath));
-            const pkgName = await getPackageName(pkgDir);
+            const pkgName = await this.fsUtil.getPackageName(pkgDir);
             const safe = sanitizePackageDir(pkgName);
             const destDir = path.join(this.outRoot, safe);
-            await ensureDir(destDir);
+            await this.fsUtil.ensureDir(destDir);
 
             await fs.copyFile(coveragePath, path.join(destDir, "coverage.json"));
 
             const lcovPath = path.join(coverageDir, "lcov.info");
-            if (await exists(lcovPath)) {
+            if (await this.fsUtil.exists(lcovPath)) {
                 await fs.copyFile(lcovPath, path.join(destDir, "lcov.info"));
             }
 
             const htmlIndex = path.join(coverageDir, "index.html");
-            if (await exists(htmlIndex)) {
+            if (await this.fsUtil.exists(htmlIndex)) {
                 await fs.cp(coverageDir, path.join(destDir, "html"), { recursive: true, force: true });
             }
 
