@@ -84,7 +84,7 @@ function validatePreconditions(ctx, shell) {
   // A release commit from `changeset version` will always modify package.json and/or CHANGELOG.md files.
   // `git diff-tree` is a low-level command to compare contents of two tree objects.
   // Here, we use it to get a list of changed files in the HEAD commit.
-  const changedFiles = runShellCommand('git diff-tree --no-commit-id --name-only -r HEAD^1...HEAD', shell, { stdio: 'pipe' }).stdout.trim();
+  const changedFiles = runShellCommand('git diff-tree --no-commit-id --name-only -r HEAD^..HEAD', shell, { stdio: 'pipe' }).stdout.trim();
   const latestChangesAreReleaseChanges = changedFiles.split('\n').some(file => file.endsWith('package.json') || file.endsWith('CHANGELOG.md'));
 
   if (!isMainBranch && !isReleaseBranch && isMultiRelease) {
