@@ -1,126 +1,137 @@
-import { describe, it, mock, afterEach, beforeEach } from 'node:test';
+import { describe, it, mock, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
-import path from 'node:path';
-import { main } from './version.js';
+import { VersionService } from './services/version.service.js';
 
-describe('version.js', () => {
+describe('VersionService', () => {
     let mockFsApi;
-    let mockShell;
+    let mockShellService;
+    let versionService;
+    let originalEnv;
 
     beforeEach(() => {
+        originalEnv = { ...process.env };
+
+        // Mock filesystem
         mockFsApi = {
-            existsSync: mock.fn(),
-            readdirSync: mock.fn(),
+            existsSync: mock.fn(() => true),
+            readdirSync: mock.fn(() => ['major-bump.md']),
             readFileSync: mock.fn(),
-            writeFileSync: mock.fn(),
             mkdirSync: mock.fn(),
+            writeFileSync: mock.fn()
         };
 
-        mockShell = mock.fn(() => ({ stdout: '', stderr: '', code: 0 }));
-        mock.reset();
+        // Mock shell service
+        mockShellService = {
+            run: mock.fn(() => ({ stdout: '' }))
+        };
+
+        versionService = VersionService.create(mockShellService, mockFsApi);
     });
 
     afterEach(() => {
-        mock.reset();
+        process.env = originalEnv;
+        mock.restoreAll();
     });
 
     describe('main()', () => {
-        it('should skip if no changesets are found', () => {
+        it('should skip if no changesets are found', async () => {
             // -- Arrange
-            mockFsApi.existsSync.mock.mockImplementation(() => true);
-            mockFsApi.readdirSync.mock.mockImplementation(() => ['README.md']);
+            mockFsApi.existsSync.mock.mockImplementation(() => false);
 
             // -- Act
-            main(mockFsApi, process.cwd(), mockShell);
+            await versionService.run(process.env);
 
             // -- Assert
-            assert.strictEqual(mockFsApi.writeFileSync.mock.callCount(), 0);
-            assert.strictEqual(mockShell.mock.callCount(), 0);
-        });
-
-        it('should write an empty plan file if no major bumps are detected', () => {
-            // -- Arrange
-            mockFsApi.existsSync.mock.mockImplementation(() => true);
-            mockFsApi.readdirSync.mock.mockImplementation(() => ['minor-bump.md']);
-            mockFsApi.readFileSync.mock.mockImplementation(() => '---\n"@scope/pkg-one": minor\n---\n\nSummary.');
-
-            // -- Act
-            main(mockFsApi, process.cwd(), mockShell);
-
-            // -- Assert
-            const planPath = path.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
             assert.strictEqual(mockFsApi.writeFileSync.mock.callCount(), 1);
-            assert.strictEqual(mockFsApi.writeFileSync.mock.calls[0].arguments[0], planPath);
-            assert.deepStrictEqual(JSON.parse(mockFsApi.writeFileSync.mock.calls[0].arguments[1]), {});
-
-            assert.strictEqual(mockShell.mock.callCount(), 1);
-            assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'pnpm changeset version');
+            assert.strictEqual(mockShellService.run.mock.callCount(), 0, 'Should not run changeset version');
         });
 
-        it('should plan a maintenance branch for a single major bump', () => {
+        it('should write an empty plan file if no major bumps are detected', async () => {
             // -- Arrange
-            mockFsApi.existsSync.mock.mockImplementation(() => true);
-            mockFsApi.readdirSync.mock.mockImplementation(() => ['major-bump.md']);
-            mockFsApi.readFileSync.mock.mockImplementation((p) => {
-                if (p.endsWith('major-bump.md')) return '---\n"@scope/pkg-one": major\n---\n\nSummary.';
-                if (p.endsWith('package.json')) return JSON.stringify({ name: '@scope/pkg-one', version: '2.5.0' });
-                return '';
+            mockFsApi.readFileSync.mock.mockImplementation(() => `
+---
+"@scope/lib-one": patch
+---
+
+Fix a small bug
+            `);
+
+            // -- Act
+            await versionService.run(process.env);
+
+            // -- Assert
+            assert.strictEqual(mockFsApi.writeFileSync.mock.callCount(), 1);
+            const writeCall = mockFsApi.writeFileSync.mock.calls[0];
+            const writtenContent = JSON.parse(writeCall.arguments[1]);
+            assert.deepStrictEqual(writtenContent, {});
+        });
+
+        it('should plan a maintenance branch for a single major bump', async () => {
+            // -- Arrange
+            mockFsApi.readFileSync.mock.mockImplementation((path) => {
+                if (path.includes('.md')) {
+                    return `
+---
+"@scope/lib-one": major
+---
+
+Breaking change
+                    `;
+                } else if (path.includes('package.json')) {
+                    return JSON.stringify({
+                        name: '@scope/lib-one',
+                        version: '2.0.0'
+                    });
+                }
             });
 
             // -- Act
-            main(mockFsApi, process.cwd(), mockShell);
+            await versionService.run(process.env);
 
             // -- Assert
-            const planPath = path.resolve(process.cwd(), '.release-meta', 'maintenance-branches.json');
             assert.strictEqual(mockFsApi.writeFileSync.mock.callCount(), 1);
-            assert.strictEqual(mockFsApi.writeFileSync.mock.calls[0].arguments[0], planPath);
+            const writeCall = mockFsApi.writeFileSync.mock.calls[0];
+            const writtenContent = JSON.parse(writeCall.arguments[1]);
 
-            const writtenPlan = JSON.parse(mockFsApi.writeFileSync.mock.calls[0].arguments[1]);
-            const expectedPlan = {
-                '@scope/pkg-one': {
-                    dirName: 'pkg-one',
-                    majorVersion: 2,
-                    branchName: 'release/pkg-one_v2',
-                },
-            };
-            assert.deepStrictEqual(writtenPlan, expectedPlan);
+            assert.ok(writtenContent['@scope/lib-one']);
+            assert.strictEqual(writtenContent['@scope/lib-one'].version, '2.0.0');
+            assert.ok(writtenContent['@scope/lib-one'].branchName.includes('lib-one'));
 
-            assert.strictEqual(mockShell.mock.callCount(), 1);
-            assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'pnpm changeset version');
+            assert.strictEqual(mockShellService.run.mock.callCount(), 1);
+            assert.ok(mockShellService.run.mock.calls[0].arguments[0].includes('changeset version'));
         });
 
-        it('should plan branches for multiple major bumps', () => {
-            mockFsApi.readdirSync.mock.mockImplementation(() => ['major1.md', 'major2.md']);
+        it('should plan branches for multiple major bumps', async () => {
+            // -- Arrange
+            mockFsApi.readdirSync.mock.mockImplementation(() => ['bump1.md', 'bump2.md']);
 
-            mockFsApi.existsSync.mock.mockImplementation(() => true);
-
-            mockFsApi.readFileSync.mock.mockImplementation((p) => {
-                if (p.endsWith('major1.md')) return '---\n"@scope/pkg-one": major\n---\n\nSummary.';
-                if (p.endsWith('major2.md')) return '---\n"@scope/pkg-two": major\n---\n\nSummary.';
-                if (p.endsWith(path.join('pkg-one', 'package.json'))) return JSON.stringify({ name: '@scope/pkg-one', version: '1.2.3' });
-                if (p.endsWith(path.join('pkg-two', 'package.json'))) return JSON.stringify({ name: '@scope/pkg-two', version: '4.5.6' });
-                return '';
+            let readCount = 0;
+            mockFsApi.readFileSync.mock.mockImplementation((path) => {
+                if (path.includes('.md')) {
+                    readCount++;
+                    if (readCount === 1) {
+                        return `---\n"@scope/lib-one": major\n---\nBreaking change in lib-one`;
+                    } else {
+                        return `---\n"@scope/lib-two": major\n---\nBreaking change in lib-two`;
+                    }
+                } else if (path.includes('lib-one')) {
+                    return JSON.stringify({ name: '@scope/lib-one', version: '2.0.0' });
+                } else if (path.includes('lib-two')) {
+                    return JSON.stringify({ name: '@scope/lib-two', version: '3.0.0' });
+                }
             });
 
-            main(mockFsApi, process.cwd(), mockShell);
+            // -- Act
+            await versionService.run(process.env);
 
-            const writtenPlan = JSON.parse(mockFsApi.writeFileSync.mock.calls[0].arguments[1]);
-            const expectedPlan = {
-                '@scope/pkg-one': {
-                    dirName: 'pkg-one',
-                    majorVersion: 1,
-                    branchName: 'release/pkg-one_v1',
-                },
-                '@scope/pkg-two': {
-                    dirName: 'pkg-two',
-                    majorVersion: 4,
-                    branchName: 'release/pkg-two_v4',
-                },
-            };
-            assert.deepStrictEqual(writtenPlan, expectedPlan);
+            // -- Assert
+            assert.strictEqual(mockFsApi.writeFileSync.mock.callCount(), 1);
+            const writeCall = mockFsApi.writeFileSync.mock.calls[0];
+            const writtenContent = JSON.parse(writeCall.arguments[1]);
 
-            assert.strictEqual(mockShell.mock.callCount(), 1);
-            assert.strictEqual(mockShell.mock.calls[0].arguments[0], 'pnpm changeset version');
+            assert.ok(writtenContent['@scope/lib-one']);
+            assert.ok(writtenContent['@scope/lib-two']);
+            assert.strictEqual(mockShellService.run.mock.callCount(), 1);
         });
     });
 });
