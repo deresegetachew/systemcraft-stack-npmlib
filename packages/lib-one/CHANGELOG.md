@@ -1,5 +1,11 @@
 # @systemcraft/lib-one
 
+## 3.2.0
+
+### Minor Changes
+
+- e8728e0: testing minor release
+
 ## 3.1.0
 
 ### Minor Changes
