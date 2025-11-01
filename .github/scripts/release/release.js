@@ -80,17 +80,22 @@ function getReleaseContext(env) {
 function validatePreconditions(ctx, shell) {
   const { branchName, isMultiRelease, isReleaseBranch, isMainBranch } = ctx;
 
-  const latestCommitMessage = runShellCommand('git log -1 --pretty=%B', shell, { stdio: 'pipe' }).stdout.trim();
-  const latestCommitIsReleaseCommit = latestCommitMessage.includes('chore: update package versions and changelogs');
+  // Instead of checking commit messages, we check for file changes, which is more robust.
+  // A release commit from `changeset version` will always modify package.json and/or CHANGELOG.md files.
+  // `git diff-tree` is a low-level command to compare contents of two tree objects.
+  // Here, we use it to get a list of changed files in the HEAD commit.
+  const changedFiles = runShellCommand('git diff-tree --no-commit-id --name-only -r HEAD^1...HEAD', shell, { stdio: 'pipe' }).stdout.trim();
+  const latestChangesAreReleaseChanges = changedFiles.split('\n').some(file => file.endsWith('package.json') || file.endsWith('CHANGELOG.md'));
 
   if (!isMainBranch && !isReleaseBranch && isMultiRelease) {
     console.warn(`Skipping release : on branch ${branchName}. for Multi-Release mode .`);
     return { proceedWithRelease: false };
   }
 
-  console.log(`Latest commit message: ${latestCommitMessage}`);
+  console.log(`Checking for release commit by inspecting changed files in HEAD...`);
 
-  if (latestCommitIsReleaseCommit) {
+  if (latestChangesAreReleaseChanges) {
+    console.log('✅ Versioning changes detected (package.json, CHANGELOG.md, or .changeset/ files modified). Proceeding with release.');
     return { proceedWithRelease: true };
   }
 
