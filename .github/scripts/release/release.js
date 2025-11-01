@@ -18,6 +18,8 @@ function planRelease(ctx, fsApi) {
 
   steps.push({ type: 'exec', cmd: 'pnpm changeset publish' });
 
+  console.log(`planned release steps: ${steps.map((s) => s.type).join(', ')}`);
+
   return steps;
 }
 
@@ -86,6 +88,8 @@ function validatePreconditions(ctx, shell) {
     return { proceedWithRelease: false };
   }
 
+  console.log(`Latest commit message: ${latestCommitMessage}`);
+
   if (latestCommitIsReleaseCommit) {
     return { proceedWithRelease: true };
   }
@@ -106,6 +110,7 @@ export function main(
 
   console.log(`🔍 Current branch: ${ctx.branchName}`);
   console.log(`🔍 Multi-release mode: ${ctx.isMultiRelease}`);
+  console.log(`Proceed with release: ${proceedWithRelease}`);
 
   if (proceedWithRelease) {
     steps.push(...planRelease(ctx, fsApi));
