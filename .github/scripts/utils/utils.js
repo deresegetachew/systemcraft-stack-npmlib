@@ -124,6 +124,10 @@ export async function getChangedFiles(shell) {
             console.log(`Trying: ${command}`);
             const result = actualShell(command, { stdio: 'pipe' });
             const files = result.stdout.split('\n').filter(Boolean);
+
+            console.log(`result.stdout:\n${result.stdout}`);
+            console.log(`Files changed:\n${files.join('\n')}`);
+
             if (files.length > 0) {
                 console.log(`✅ Found ${files.length} changed files using: ${command}`);
                 return files;
