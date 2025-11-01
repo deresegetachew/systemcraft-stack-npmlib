@@ -87,9 +87,11 @@ export function extractMajorBumpPackagesFromChangesets(changesetFiles) {
     return majorBumpPackages;
 }
 
-export function runShellCommand(cmd, shellFn = exec, options = {}) {
+export function runShellCommand(cmd, shellFn, options = {}) {
     console.log(`▶ ${cmd}`);
-    return shellFn(cmd, options);
+    // Use internal exec if no shell function provided
+    const actualShellFn = shellFn || exec;
+    return actualShellFn(cmd, options);
 }
 
 export function sanitizePackageDir(nameOrDir) {
