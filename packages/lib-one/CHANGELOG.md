@@ -1,5 +1,11 @@
 # @systemcraft/lib-one
 
+## 3.5.0
+
+### Minor Changes
+
+- d5c5969: testing patch release
+
 ## 3.4.0
 
 ### Minor Changes
