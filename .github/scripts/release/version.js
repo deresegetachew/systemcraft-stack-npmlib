@@ -68,7 +68,7 @@ function writePlanFile(plan, fsApi, baseDir) {
 export function main(
     fsApi = fs,
     baseDir = process.cwd(),
-    shell = exec
+    shell = runShellCommand
 ) {
     console.log('🚀 Starting version script...');
 
