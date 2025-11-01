@@ -102,3 +102,17 @@ export async function getPackageName(pkgDir) {
     }
     return path.basename(pkgDir);
 }
+
+export async function getChangedFiles(shell = exec) {
+    try {
+        const result = shell('git diff --name-only HEAD^1..HEAD', { stdio: 'pipe' });
+        return result.stdout.split('\n').filter(Boolean);
+    } catch {
+        try {
+            const result = shell('git diff --name-only HEAD^..HEAD', { stdio: 'pipe' });
+            return result.stdout.split('\n').filter(Boolean);
+        } catch {
+            return [];
+        }
+    }
+}
