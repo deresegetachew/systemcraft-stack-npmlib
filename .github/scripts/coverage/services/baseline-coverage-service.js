@@ -6,8 +6,8 @@ import path from "node:path";
 import os from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { extractTotals } from "../coverage.util.js";
-import FsUtil from "../../utils/fs.util.js";
+import { extractTotals } from "../coverage.util";
+import FSUtil from "../../utils/fs.util";
 
 
 const execFileAsync = promisify(execFile);
@@ -22,7 +22,7 @@ class BaselineCoverageService {
         this.githubToken = options.githubToken ?? process.env.GITHUB_TOKEN;
         this.tempDir = options.tempDir ?? path.join(os.tmpdir(), "coverage-baseline");
 
-        FsUtil.create(fs);
+        FSUtil.create(fs);
     }
 
     async load() {
@@ -40,7 +40,7 @@ class BaselineCoverageService {
             for (const item of indexData.items) {
                 const coveragePath = path.join(sourcePath, item.safe, "coverage.json");
 
-                if (await FsUtil.exists(coveragePath)) {
+                if (await FSUtil.exists(coveragePath)) {
                     try {
                         const summary = JSON.parse(await fs.readFile(coveragePath, "utf8"));
                         const totals = extractTotals(summary);
@@ -163,12 +163,12 @@ class BaselineCoverageService {
             }
 
             const directIndex = path.join(extractDir, "index.json");
-            if (await FsUtil.exists(directIndex)) {
+            if (await FSUtil.exists(directIndex)) {
                 return extractDir;
             }
 
             const coverageDir = path.join(extractDir, "coverage-artifacts");
-            if (await FsUtil.exists(path.join(coverageDir, "index.json"))) {
+            if (await FSUtil.exists(path.join(coverageDir, "index.json"))) {
                 return coverageDir;
             }
 
@@ -176,7 +176,7 @@ class BaselineCoverageService {
             for (const entry of entries) {
                 if (entry.isDirectory()) {
                     const candidate = path.join(extractDir, entry.name);
-                    if (await FsUtil.exists(path.join(candidate, "index.json"))) {
+                    if (await FSUtil.exists(path.join(candidate, "index.json"))) {
                         return candidate;
                     }
                 }

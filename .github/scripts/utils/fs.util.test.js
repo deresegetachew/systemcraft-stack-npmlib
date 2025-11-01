@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
-import { FSUtil } from './fs.util.js';
+import { FSUtil } from './fs.util';
 
 describe('FsUtil', () => {
     let mockFs;
