@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { runShellCommand, exec } from '../utils/utils.js';
+import { runShellCommand, exec, getChangedFiles } from '../utils/utils.js';
 
 function planRelease(ctx, fsApi) {
   const { isMultiRelease, isMainBranch } = ctx;
@@ -77,15 +77,13 @@ function getReleaseContext(env) {
   };
 }
 
-function validatePreconditions(ctx, shell) {
+async function validatePreconditions(ctx, shell) {
   const { branchName, isMultiRelease, isReleaseBranch, isMainBranch } = ctx;
 
   // Instead of checking commit messages, we check for file changes, which is more robust.
   // A release commit from `changeset version` will always modify package.json and/or CHANGELOG.md files.
-  // `git diff-tree` is a low-level command to compare contents of two tree objects.
-  // Here, we use it to get a list of changed files in the HEAD commit.
-  const changedFiles = runShellCommand('git diff-tree --no-commit-id --name-only -r HEAD^..HEAD', shell, { stdio: 'pipe' }).stdout.trim();
-  const latestChangesAreReleaseChanges = changedFiles.split('\n').some(file => file.endsWith('package.json') || file.endsWith('CHANGELOG.md'));
+  const changedFiles = await getChangedFiles(shell);
+  const latestChangesAreReleaseChanges = changedFiles.some(file => file.endsWith('package.json') || file.endsWith('CHANGELOG.md'));
 
   if (!isMainBranch && !isReleaseBranch && isMultiRelease) {
     console.warn(`Skipping release : on branch ${branchName}. for Multi-Release mode .`);
@@ -102,7 +100,7 @@ function validatePreconditions(ctx, shell) {
   return { proceedWithRelease: false }
 }
 
-export function main(
+export async function main(
   env = process.env,
   fsApi = fs,
   shell = exec
@@ -111,7 +109,7 @@ export function main(
 
   const ctx = getReleaseContext(env);
   const steps = [];
-  const { proceedWithRelease } = validatePreconditions(ctx, shell);
+  const { proceedWithRelease } = await validatePreconditions(ctx, shell);
 
   console.log(`🔍 Current branch: ${ctx.branchName}`);
   console.log(`🔍 Multi-release mode: ${ctx.isMultiRelease}`);
@@ -133,7 +131,7 @@ export function main(
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   try {
-    main();
+    await main();
   } catch (err) {
     // If the error is about skipping, it's not a failure.
     if (err.message.includes('Skipping release process')) {
