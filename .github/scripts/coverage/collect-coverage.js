@@ -8,7 +8,8 @@ import { walkAndFindCoverage, extractTotals } from "./coverage.util.js";
 import { BaselineCoverageService } from "./services/baseline-coverage-service.js";
 import { CoverageDiffFormatter } from "./coverage-diff-formatter.js";
 import { CoverageReporter } from "./report-coverage.js";
-import { exists, ensureDir, getPackageName, sanitizePackageDir } from "../utils/utils.js";
+import { exists, ensureDir, getPackageName } from "../utils/fs.util.js";
+import { sanitizePackageDir } from "../utils/package.util.js";
 
 
 
