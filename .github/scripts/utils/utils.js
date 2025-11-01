@@ -110,20 +110,31 @@ export async function getPackageName(pkgDir) {
 }
 
 export async function getChangedFiles(shell) {
-    // Default to using exec directly if no shell function provided
     const actualShell = shell || ((cmd, options) => exec(cmd, options));
 
-    try {
-        const result = actualShell('git diff --name-only HEAD^1..HEAD', { stdio: 'pipe' });
-        return result.stdout.split('\n').filter(Boolean);
-    } catch {
+    const strategies = [
+        // Strategy 1: Compare with parent commit (most common)
+        'git diff --name-only HEAD~1..HEAD',
+        // Strategy 2: Alternative parent syntax
+        'git diff --name-only HEAD^..HEAD'
+    ];
+
+    for (const command of strategies) {
         try {
-            const result = actualShell('git diff --name-only HEAD^..HEAD', { stdio: 'pipe' });
-            return result.stdout.split('\n').filter(Boolean);
-        } catch {
-            return [];
+            console.log(`Trying: ${command}`);
+            const result = actualShell(command, { stdio: 'pipe' });
+            const files = result.stdout.split('\n').filter(Boolean);
+            if (files.length > 0) {
+                console.log(`✅ Found ${files.length} changed files using: ${command}`);
+                return files;
+            }
+        } catch (error) {
+            console.log(`❌ Failed: ${command} - ${error.message}`);
         }
     }
+
+    console.warn('⚠️  No git strategy worked, returning empty array');
+    return [];
 }
 
 // Export for testing only - do not use directly in application code
