@@ -1,5 +1,11 @@
 # @systemcraft/lib-one
 
+## 3.4.0
+
+### Minor Changes
+
+- 6bab087: test minor on main
+
 ## 3.3.0
 
 ### Minor Changes
