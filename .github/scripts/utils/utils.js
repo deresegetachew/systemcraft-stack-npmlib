@@ -88,7 +88,7 @@ export function extractMajorBumpPackagesFromChangesets(changesetFiles) {
 }
 
 export function runShellCommand(cmd, shellFn, options = {}) {
-    console.log(`▶ ${cmd}`);
+    console.log(`▶ ${cmd}`, { options });
     // Use internal exec if no shell function provided or if it's not a function
     const actualShellFn = (typeof shellFn === 'function') ? shellFn : exec;
     return actualShellFn(cmd, options);
