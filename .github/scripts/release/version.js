@@ -1,89 +1,13 @@
 /**This file will run if there are changesets to process */
 
 import fs from 'node:fs';
-import path from 'node:path';
-import {
-    loadChangesetFiles,
-    getPackageInfo,
-    runShellCommand,
-    extractMajorBumpPackagesFromChangesets,
-} from '../utils/utils.js';
+import { VersionService } from './services/version.service.js';
+import { ShellUtil } from '../utils/shell.util.js';
 
-
-function getMajorBumpPackages(fsApi, baseDir) {
-    const files = loadChangesetFiles(fsApi, baseDir);
-    if (files.length === 0) {
-        console.log('ℹ️ No changesets found.');
-        return new Set();
-    }
-    return extractMajorBumpPackagesFromChangesets(files);
-}
-
-
-function planMaintenanceBranches(fsApi, baseDir) {
-    const majorBumpPackages = getMajorBumpPackages(fsApi, baseDir);
-    const branchPlan = {};
-
-    if (majorBumpPackages.size === 0) {
-        console.log('ℹ️ No major version bumps detected. No maintenance branches will be planned.');
-        return branchPlan;
-    }
-
-    console.log(
-        `⚠️ Major version bumps detected for packages: ${Array.from(majorBumpPackages).join(', ')}`
-    );
-
-    for (const pkgName of majorBumpPackages) {
-        const pkgInfo = getPackageInfo(pkgName, fsApi, baseDir);
-        if (!pkgInfo) {
-            console.warn(`Could not find package.json for ${pkgName}. Skipping maintenance branch planning.`);
-            continue;
-        }
-
-        const currentMajor = parseInt(pkgInfo.version.split('.')[0], 10);
-        const branchNameForPkg = `release/${pkgInfo.dirName}_v${currentMajor}`;
-
-        branchPlan[pkgName] = {
-            dirName: pkgInfo.dirName,
-            majorVersion: currentMajor,
-            branchName: branchNameForPkg,
-        };
-    }
-
-    return branchPlan;
-}
-
-
-function writePlanFile(plan, fsApi, baseDir) {
-    const metaDir = path.resolve(baseDir, '.release-meta');
-    if (!fsApi.existsSync(metaDir)) {
-        fsApi.mkdirSync(metaDir, { recursive: true });
-    }
-
-    const filePath = path.resolve(metaDir, 'maintenance-branches.json');
-    fsApi.writeFileSync(filePath, JSON.stringify(plan, null, 2));
-    console.log(`✅ Wrote maintenance branch plan to ${filePath}`);
-}
-
-export function main(
-    fsApi = fs,
-    baseDir = process.cwd(),
-    shell = runShellCommand
-) {
-    console.log('🚀 Starting version script...');
-
-    const changesetsDir = path.resolve(baseDir, '.changeset');
-    if (!fsApi.existsSync(changesetsDir) || fsApi.readdirSync(changesetsDir).filter(f => f !== 'README.md').length === 0) {
-        console.log('✅ No changesets found. Skipping versioning.');
-        return;
-    }
-
-    const plan = planMaintenanceBranches(fsApi, baseDir);
-    writePlanFile(plan, fsApi, baseDir);
-
-    runShellCommand('pnpm changeset version', shell);
-
-    console.log('✅ Version script completed successfully.');
+// Main function with default dependencies  
+export async function main(env = process.env, fsApi = fs, shellUtil = new ShellUtil()) {
+    const versionService = VersionService.create(shellUtil, fsApi);
+    return await versionService.run(env);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
