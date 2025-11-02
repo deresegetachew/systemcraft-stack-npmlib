@@ -1,5 +1,23 @@
 # @systemcraft/lib-one
 
+## 3.6.0
+
+### Minor Changes
+
+- 50db1df: testing minor
+
+## 3.5.0
+
+### Minor Changes
+
+- d5c5969: testing patch release
+
+## 3.4.0
+
+### Minor Changes
+
+- 6bab087: test minor on main
+
 ## 3.3.0
 
 ### Minor Changes
