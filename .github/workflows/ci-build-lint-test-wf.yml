@@ -28,9 +28,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - uses: ./.github/actions/require-changeset
-        with:
-          skip-label: "[skip changeset check]"
+      - name: Require changeset in PR
+        run: node .github/scripts/require-changeset/require-changeset.js
+        env:
+          INPUT_SKIP-LABEL: "[skip changeset check]"
 
       - uses: ./.github/actions/build-lint-test
 

@@ -43,4 +43,71 @@ export class GitUtil {
     pushBranch(branchName) {
         this.shell.run(`git push origin ${branchName}`);
     }
+
+    getChangedFilesBetweenRefs(baseRef, headRef, baseSha, headSha) {
+        const strategies = [
+            // Strategy 1: Use branch references (most reliable)
+            () => {
+                if (!headRef) return '';
+                try {
+                    const result = this.shell.exec(`git diff --name-only origin/${baseRef}...origin/${headRef}`, { stdio: 'pipe' });
+                    return result.stdout;
+                } catch {
+                    return '';
+                }
+            },
+
+            // Strategy 2: Use SHAs with three-dot syntax (finds merge base automatically)
+            () => {
+                if (!baseSha || !headSha) return '';
+                try {
+                    const result = this.shell.exec(`git diff --name-only ${baseSha}...${headSha}`, { stdio: 'pipe' });
+                    return result.stdout;
+                } catch {
+                    return '';
+                }
+            },
+
+            // Strategy 3: Use SHAs with two-dot syntax
+            () => {
+                if (!baseSha || !headSha) return '';
+                try {
+                    const result = this.shell.exec(`git diff --name-only ${baseSha}..${headSha}`, { stdio: 'pipe' });
+                    return result.stdout;
+                } catch {
+                    return '';
+                }
+            },
+
+            // Strategy 4: Compare HEAD to base branch
+            () => {
+                try {
+                    const result = this.shell.exec(`git diff --name-only origin/${baseRef}...HEAD`, { stdio: 'pipe' });
+                    return result.stdout;
+                } catch {
+                    return '';
+                }
+            }
+        ];
+
+        for (let i = 0; i < strategies.length; i++) {
+            console.log(`Trying diff strategy ${i + 1}...`);
+            const result = strategiesi;
+            if (result && result.trim()) {
+                const files = result.trim().split('\n').filter(Boolean);
+                console.log(`✅ Successfully got ${files.length} changed files using strategy ${i + 1}`);
+                return files;
+            }
+        }
+
+        throw new Error('Could not get changed files with any method');
+    }
+
+    fetchBranch(ref) {
+        try {
+            this.shell.exec(`git fetch origin ${ref}`, { stdio: 'inherit' });
+        } catch (error) {
+            throw new Error(`Failed to fetch branch ${ref}: ${error.message}`);
+        }
+    }
 }
