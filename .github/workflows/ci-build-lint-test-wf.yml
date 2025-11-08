@@ -35,7 +35,7 @@ jobs:
 
       - uses: ./.github/actions/build-lint-test
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
 
   codeql:
     uses: ./.github/workflows/codeql-analyze-wf.yml
