@@ -29,11 +29,13 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Require changeset in PR
-        run: node .github/scripts/require-changeset/require-changeset.js
-        env:
-          INPUT_SKIP-LABEL: "[skip changeset check]"
+        uses: deresegetachew/systemcraft-stack-actions/actions/changeset-validator@main
+        with:
+          skip-label: "[skip changeset check]"
 
       - uses: ./.github/actions/build-lint-test
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   codeql:
     uses: ./.github/workflows/codeql-analyze-wf.yml
@@ -104,16 +106,23 @@ jobs:
           echo "Package directories:"
           ls -la packages/*/dist/ 2>/dev/null || echo "No dist directories found"
 
+      - name: Run version step
+        uses: deresegetachew/systemcraft-stack-actions/actions/plan-maintenance-branches@main
+        env:
+          ENABLE_MULTI_RELEASE: ${{ vars.ENABLE_MULTI_RELEASE }}
+
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
         with:
-          version: "node .github/scripts/release/version.js"
           commit: "chore: update package versions and changelogs"
-          publish: "node .github/scripts/release/release.js"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run release step
+        uses: deresegetachew/systemcraft-stack-actions/actions/release-with-branching@main
+        env:
           ENABLE_MULTI_RELEASE: ${{ vars.ENABLE_MULTI_RELEASE }}
 
       # Debugging step to show the latest commit with signature info

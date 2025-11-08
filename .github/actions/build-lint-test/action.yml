@@ -1,5 +1,11 @@
 name: Build, Lint, and Test
 description: A composite action to build, lint, and test the project
+
+inputs:
+  github-token:
+    description: "GitHub token for PR comments and artifact access"
+    required: true
+
 runs:
   using: composite
   steps:
@@ -23,52 +29,13 @@ runs:
       shell: bash
       run: pnpm -r test -- --ci --coverage
 
-
-    - name: Sanitize base branch name for artifact path (for PRs)
-      if: github.event_name == 'pull_request'
-      id: sanitize_base_ref
-      shell: bash
-      run: echo "name=$(echo ${{ github.base_ref }} | tr / _)" >> $GITHUB_OUTPUT
-
-    - name: Sanitize branch name for artifact name (for pushes)
-      if: github.event_name == 'push'
-      id: sanitize_ref_name
-      shell: bash
-      run: echo "name=$(echo ${{ github.ref_name }} | tr / _)" >> $GITHUB_OUTPUT
-
-    # Collect coverage summaries, copy LCOV/HTML assets, pull the latest
-    # baseline (via API when needed), and generate the diff-aware report
-    - name: Collect coverage summaries
-      shell: bash
-      env:
-        OUT_DIR: coverage-artifacts
-        COVERAGE_FILE_NAME: coverage-summary.json
-        ENABLE_COVERAGE_DIFF: ${{ github.event_name == 'pull_request' }}
-        BASELINE_ARTIFACT_PATH: ${{ github.event_name == 'pull_request' && format('coverage-baseline-{0}', steps.sanitize_base_ref.outputs.name) || '' }}
-        GITHUB_TOKEN: ${{ github.token }}
-      run: node .github/scripts/coverage/collect-coverage.js
-
-    # Upload lightweight JSON + Markdown summary
-    - name: Upload coverage artifacts
-      uses: actions/upload-artifact@v4
+    # Use our coverage reporter action for comprehensive coverage analysis
+    - name: Generate coverage report
+      uses: deresegetachew/systemcraft-stack-actions/actions/coverage-reporter@main
       with:
-        name: coverage-artifacts
-        path: coverage-artifacts/**
-
-    # Save coverage as baseline for future PR comparisons (on push to main or release branches)
-    - name: Upload coverage baseline
-      if: github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/'))
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-baseline-${{ steps.sanitize_ref_name.outputs.name }}
-        path: coverage-artifacts/**
-        retention-days: 90
-
-    # Sticky comment on PR
-    - name: Post/update sticky coverage comment
-      if: ${{ github.event_name == 'pull_request' }}
-      uses: marocchino/sticky-pull-request-comment@v2
-      with:
-        header: coverage-report
-        path: coverage-artifacts/coverage-report.md
+        coverage-command: 'echo "Coverage already collected by previous step"'
+        output-dir: 'coverage-artifacts'
+        enable-pr-comments: 'true'
+        minimum-coverage: '70'
+        github-token: ${{ inputs.github-token }}
       
