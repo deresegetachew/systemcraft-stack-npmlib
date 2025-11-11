@@ -33,7 +33,7 @@ runs:
     - name: Generate coverage report
       uses: deresegetachew/systemcraft-stack-actions/actions/coverage-reporter@main
       with:
-        coverage-command: 'pnpm test -r test'
+        coverage-command: 'pnpm -r test'
         output-dir: 'coverage-artifacts'
         enable-pr-comments: 'true'
         minimum-coverage: '70'
