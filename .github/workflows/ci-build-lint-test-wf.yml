@@ -122,8 +122,10 @@ jobs:
 
       - name: Run release step
         uses: deresegetachew/systemcraft-stack-actions/actions/release-with-branching@main
-        env:
-          ENABLE_MULTI_RELEASE: ${{ vars.ENABLE_MULTI_RELEASE }}
+        with:
+          enable-multi-release: ${{ vars.ENABLE_MULTI_RELEASE }}
+          node-auth-token: ${{ secrets.NPM_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       # Debugging step to show the latest commit with signature info
       - name: Show latest commit + signature
