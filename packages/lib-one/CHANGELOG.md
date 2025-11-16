@@ -1,5 +1,11 @@
 # @systemcraft/lib-one
 
+## 3.6.1
+
+### Patch Changes
+
+- b5a0f5b: ok
+
 ## 3.6.0
 
 ### Minor Changes
