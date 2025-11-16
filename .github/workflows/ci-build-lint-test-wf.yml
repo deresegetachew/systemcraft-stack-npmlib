@@ -46,7 +46,6 @@ jobs:
       contents: read
     with:
       languages: "javascript" # comma separated values code
-
   # we are keeping publish here bc uploading artifacts across wf can be buggy.
   publish:
     needs: [build]
