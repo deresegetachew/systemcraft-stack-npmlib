@@ -1,5 +1,16 @@
 # @systemcraft/lib-two
 
+## 3.1.0
+
+### Minor Changes
+
+- a3c76e6: test release
+
+### Patch Changes
+
+- Updated dependencies [b5a0f5b]
+  - @systemcraft/lib-one@3.6.1
+
 ## 3.0.1
 
 ### Patch Changes
