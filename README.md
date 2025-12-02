@@ -115,7 +115,7 @@ systemcraft/
 - `pnpm release` - Publish packages using changesets
 
 ## � Coverage Reports
-
+****
 This project automatically collects and aggregates test coverage reports from all packages in the monorepo. The coverage collection system expects each package to generate a standard `coverage-summary.json` file in its `coverage/` directory.
 
 ### Coverage Requirements
