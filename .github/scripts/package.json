@@ -1,6 +1,0 @@
-{
-    "private": true,
-    "name": "@systemcraft/github-scripts",
-    "type": "module",
-    "description": "Internal scripts for GitHub Actions automation."
-}

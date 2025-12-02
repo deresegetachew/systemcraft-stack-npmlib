@@ -28,11 +28,14 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - uses: ./.github/actions/require-changeset
+      - name: Require changeset in PR
+        uses: deresegetachew/systemcraft-stack-actions/actions/changeset-validator@main
         with:
           skip-label: "[skip changeset check]"
 
       - uses: ./.github/actions/build-lint-test
+        with:
+          github-token: ${{ github.token }}
 
   codeql:
     uses: ./.github/workflows/codeql-analyze-wf.yml
@@ -43,7 +46,6 @@ jobs:
       contents: read
     with:
       languages: "javascript" # comma separated values code
-
   # we are keeping publish here bc uploading artifacts across wf can be buggy.
   publish:
     needs: [build]
@@ -103,17 +105,26 @@ jobs:
           echo "Package directories:"
           ls -la packages/*/dist/ 2>/dev/null || echo "No dist directories found"
 
+      - name: Run version step
+        uses: deresegetachew/systemcraft-stack-actions/actions/plan-maintenance-branches@main
+        env:
+          ENABLE_MULTI_RELEASE: ${{ vars.ENABLE_MULTI_RELEASE }}
+
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
         with:
-          version: "node .github/scripts/release/version.js"
           commit: "chore: update package versions and changelogs"
-          publish: "node .github/scripts/release/release.js"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ENABLE_MULTI_RELEASE: ${{ vars.ENABLE_MULTI_RELEASE }}
+
+      - name: Run release step
+        uses: deresegetachew/systemcraft-stack-actions/actions/release-with-branching@main
+        with:
+          enable-multi-release: ${{ vars.ENABLE_MULTI_RELEASE }}
+          node-auth-token: ${{ secrets.NPM_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       # Debugging step to show the latest commit with signature info
       - name: Show latest commit + signature
