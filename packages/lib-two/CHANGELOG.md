@@ -1,5 +1,20 @@
 # @systemcraft/lib-two
 
+## 4.0.0
+
+### Major Changes
+
+- 95f2010: test major release
+- 9e6b702: testing major change
+- 14f0fce: test major bump
+- 0b6dafa: yes
+
+### Patch Changes
+
+- 6e0ccca: test minor release
+- Updated dependencies [6e0ccca]
+  - @systemcraft/lib-one@3.8.0
+
 ## 3.1.0
 
 ### Minor Changes
