@@ -110,15 +110,17 @@ jobs:
         env:
           ENABLE_MULTI_RELEASE: ${{ vars.ENABLE_MULTI_RELEASE }}
 
-      - name: Create Release Pull Request or Publish
+      - name: Create Release Pull Request
         id: changesets
         uses: changesets/action@v1
         with:
           commit: "chore: update package versions and changelogs"
+          version: .github/scripts/custom-version-command.sh
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+          # should i rename this to release and publish.
       - name: Run release step
         uses: deresegetachew/systemcraft-stack-actions/actions/release-with-branching@main
         with:
