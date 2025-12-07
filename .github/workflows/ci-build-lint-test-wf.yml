@@ -20,7 +20,7 @@ jobs:
       matrix:
         node-version: [22]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false # so we control the push identity
           fetch-depth: 2
@@ -62,7 +62,7 @@ jobs:
       matrix:
         node-version: [22]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
           fetch-depth: 2
