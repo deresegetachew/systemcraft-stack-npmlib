@@ -117,9 +117,7 @@ jobs:
         uses: changesets/action@v1
         with:
           commit: "chore: update package versions and changelogs"
-          version: >-
-            git stash list | grep -q "systemcraft-maintenance-file-stash" && git stash pop || true &&
-            pnpm changeset version
+          version: .github/scripts/custom-version-command.sh
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
