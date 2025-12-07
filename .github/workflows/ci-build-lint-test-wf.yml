@@ -118,7 +118,7 @@ jobs:
         with:
           commit: "chore: update package versions and changelogs"
           version: >-
-            (git stash list | grep -q "systemcraft-maintenance-file-stash" && git stash pop) || true &&
+            git stash list | grep -q "systemcraft-maintenance-file-stash" && git stash pop || true &&
             pnpm changeset version
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
