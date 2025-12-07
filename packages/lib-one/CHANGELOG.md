@@ -1,5 +1,12 @@
 # @systemcraft/lib-one
 
+## 5.0.0
+
+### Major Changes
+
+- 5a2908c: test major version change
+- e496456: testing major
+
 ## 3.7.0
 
 ### Minor Changes
