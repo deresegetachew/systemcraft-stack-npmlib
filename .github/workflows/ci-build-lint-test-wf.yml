@@ -110,11 +110,16 @@ jobs:
         env:
           ENABLE_MULTI_RELEASE: ${{ vars.ENABLE_MULTI_RELEASE }}
 
+      # what is the point of this step, so that it creates the release pull request
+      # automatically and commit hte changes from previous step with out plan file
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
         with:
           commit: "chore: update package versions and changelogs"
+          version: >-
+            (git stash list | grep -q "systemcraft-maintenance-file-stash" && git stash pop) || true &&
+            pnpm changeset version
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
