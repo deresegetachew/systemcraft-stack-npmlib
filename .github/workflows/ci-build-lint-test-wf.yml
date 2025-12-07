@@ -110,9 +110,7 @@ jobs:
         env:
           ENABLE_MULTI_RELEASE: ${{ vars.ENABLE_MULTI_RELEASE }}
 
-      # what is the point of this step, so that it creates the release pull request
-      # automatically and commit hte changes from previous step with out plan file
-      - name: Create Release Pull Request or Publish
+      - name: Create Release Pull Request
         id: changesets
         uses: changesets/action@v1
         with:
@@ -122,6 +120,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+          # should i rename this to release and publish.
       - name: Run release step
         uses: deresegetachew/systemcraft-stack-actions/actions/release-with-branching@main
         with:
