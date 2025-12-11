@@ -1,5 +1,11 @@
 # @systemcraft/lib-one
 
+## 6.0.0
+
+### Major Changes
+
+- 3b681f4: test major bump
+
 ## 5.0.0
 
 ### Major Changes
