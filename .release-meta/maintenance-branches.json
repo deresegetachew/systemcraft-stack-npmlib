@@ -1,7 +1,12 @@
 {
   "@systemcraft/lib-one": {
-    "branchName": "release/lib-one@4.0.0",
-    "version": "4.0.0",
+    "branchName": "release/lib-one@5.0.0",
+    "version": "5.0.0",
     "dirName": "lib-one"
+  },
+  "@systemcraft/lib-two": {
+    "branchName": "release/lib-two@4.0.1",
+    "version": "4.0.1",
+    "dirName": "lib-two"
   }
 }
