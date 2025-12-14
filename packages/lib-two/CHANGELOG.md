@@ -1,5 +1,23 @@
 # @systemcraft/lib-two
 
+## 5.0.0
+
+### Major Changes
+
+- 3b681f4: test major bump
+
+### Patch Changes
+
+- Updated dependencies [3b681f4]
+  - @systemcraft/lib-one@6.0.0
+
+## 4.0.1
+
+### Patch Changes
+
+- Updated dependencies [9f283c8]
+  - @systemcraft/lib-one@5.0.0
+
 ## 3.1.0
 
 ### Minor Changes
