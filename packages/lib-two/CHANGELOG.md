@@ -1,5 +1,11 @@
 # @systemcraft/lib-two
 
+## 7.0.0
+
+### Major Changes
+
+- 28e79ec: bum libtwo to 7
+
 ## 6.1.0
 
 ### Minor Changes
