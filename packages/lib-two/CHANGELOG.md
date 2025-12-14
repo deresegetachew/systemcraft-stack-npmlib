@@ -1,5 +1,11 @@
 # @systemcraft/lib-two
 
+## 6.0.0
+
+### Major Changes
+
+- 9217224: test package two major release to 6
+
 ## 5.0.0
 
 ### Major Changes
